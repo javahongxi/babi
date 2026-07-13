@@ -1,0 +1,12 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: phobos-agent
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen-plus

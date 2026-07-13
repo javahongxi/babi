@@ -17,7 +17,8 @@
     <url>https://github.com/javahongxi/phobos</url>
 
     <modules>
-        
+
+        <module>phobos-agent</module>
     </modules>
 
     <properties>
