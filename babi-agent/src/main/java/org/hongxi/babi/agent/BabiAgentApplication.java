@@ -1,4 +1,4 @@
-package org.hongxi.phobos.agent;
+package org.hongxi.babi.agent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,10 +8,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
 @SpringBootApplication
-public class PhobosAgentApplication {
+public class BabiAgentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(PhobosAgentApplication.class, args);
+        SpringApplication.run(BabiAgentApplication.class, args);
     }
 
     @Bean

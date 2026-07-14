@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.hongxi</groupId>
-        <artifactId>phobos-parent</artifactId>
+        <artifactId>babi-parent</artifactId>
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>phobos-agent</artifactId>
+    <artifactId>babi-agent</artifactId>
 
     <dependencies>
         <!-- Spring AI Alibaba Agent Framework -->

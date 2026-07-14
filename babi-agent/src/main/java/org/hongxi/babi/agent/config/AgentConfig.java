@@ -1,4 +1,4 @@
-package org.hongxi.phobos.agent.config;
+package org.hongxi.babi.agent.config;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class AgentConfig {
 
     private static final String INSTRUCTION = """
-            You are a helpful assistant named Phobos AI.
+            You are a helpful assistant named Babi AI.
             You have access to tools that can help you get current date/time and perform text processing.
             Use these tools to assist users with their tasks.
             Always respond in Chinese.
@@ -30,7 +30,7 @@ public class AgentConfig {
                                         ToolCallback textProcessor,
                                         MemorySaver memorySaver) {
         return ReactAgent.builder()
-                .name("PhobosAgent")
+                .name("BabiAgent")
                 .model(chatModel)
                 .instruction(INSTRUCTION)
                 .enableLogging(true)
@@ -81,7 +81,7 @@ public class AgentConfig {
     public record ToolInput() {}
 
     /**
-     * 文本处理工具输入
+     * 文本处理输入
      */
     public record TextInput(String text, String operation) {}
 }

@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: phobos-agent
+    name: babi-agent
   ai:
     dashscope:
       api-key: ${DASHSCOPE_API_KEY}

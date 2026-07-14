@@ -1,6 +1,6 @@
-# Phobos Agent
+# Babi Agent
 
-Phobos Agent is an intelligent agent application built with Spring AI Alibaba.
+Babi Agent is an intelligent agent application built with Spring AI Alibaba.
 
 ## Features
 
@@ -19,7 +19,7 @@ Phobos Agent is an intelligent agent application built with Spring AI Alibaba.
 
 2. Run the application:
    ```bash
-   mvn spring-boot:run -pl phobos-agent
+   mvn spring-boot:run -pl babi-agent
    ```
 
 3. Access the Chat UI at `http://localhost:8082/chatui/index.html`

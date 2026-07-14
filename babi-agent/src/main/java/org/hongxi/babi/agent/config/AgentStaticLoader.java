@@ -1,4 +1,4 @@
-package org.hongxi.phobos.agent.config;
+package org.hongxi.babi.agent.config;
 
 import com.alibaba.cloud.ai.agent.studio.loader.AgentLoader;
 import com.alibaba.cloud.ai.graph.GraphRepresentation;
@@ -25,7 +25,7 @@ public class AgentStaticLoader implements AgentLoader {
         GraphRepresentation representation = agent.getAndCompileGraph()
                 .stateGraph.getGraph(GraphRepresentation.Type.PLANTUML);
         System.out.println(representation.content());
-        this.agents.put("PhobosAgent", agent);
+        this.agents.put("BabiAgent", agent);
     }
 
     @Override

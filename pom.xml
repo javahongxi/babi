@@ -11,14 +11,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.hongxi</groupId>
-    <artifactId>phobos-parent</artifactId>
+    <artifactId>babi-parent</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
-    <url>https://github.com/javahongxi/phobos</url>
+    <url>https://github.com/javahongxi/babi</url>
 
     <modules>
-
-        <module>phobos-agent</module>
+        <module>babi-agent</module>
     </modules>
 
     <properties>

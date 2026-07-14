@@ -1,4 +1,4 @@
-package org.hongxi.phobos.agent.controller;
+package org.hongxi.babi.agent.controller;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/agent")
-public class PhobosAgentController {
+public class BabiAgentController {
 
     private final ReactAgent reactAgent;
 
-    public PhobosAgentController(ReactAgent reactAgent) {
+    public BabiAgentController(ReactAgent reactAgent) {
         this.reactAgent = reactAgent;
     }
 
