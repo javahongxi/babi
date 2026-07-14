@@ -1,4 +1,4 @@
-# Babi Agent
+# Babi Agent 🌏
 
 Babi Agent is an intelligent agent application built with Spring AI Alibaba.
 
