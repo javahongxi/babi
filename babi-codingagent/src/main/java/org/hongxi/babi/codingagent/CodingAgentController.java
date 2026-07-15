@@ -10,8 +10,12 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import org.hongxi.babi.codingagent.tool.FetchUrlTool;
 import org.hongxi.babi.codingagent.tool.FileReadTool;
+import org.hongxi.babi.codingagent.tool.GitHubApiTool;
+import org.hongxi.babi.codingagent.tool.HttpRequestTool;
 import org.hongxi.babi.codingagent.tool.ShellCommandTool;
+import org.hongxi.babi.codingagent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +29,8 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static org.hongxi.babi.codingagent.AgentConstants.SYSTEM_PROMPT;
 
 /**
  * Web API for the Coding Agent.
@@ -46,27 +52,6 @@ public class CodingAgentController {
     private static final Logger log = LoggerFactory.getLogger(CodingAgentController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
-
-    private static final String SYSTEM_PROMPT = """
-            You are BabiCodingAgent, an expert coding assistant powered by AgentScope Java.
-            
-            You have access to the following tools:
-            - read_file: Read the contents of a file at a given path
-            - shell_command: Execute a shell command on the local system
-            
-            Your capabilities:
-            1. Read and analyze source code files
-            2. Execute shell commands for build, test, and deployment tasks
-            3. Provide code review suggestions
-            4. Help debug issues by reading logs and executing diagnostic commands
-            
-            Guidelines:
-            - Always explain what you're doing before executing commands
-            - Be cautious with destructive commands (rm, etc.)
-            - When reading code, provide clear analysis and suggestions
-            - Use shell commands for tasks like compiling, running tests, checking git status
-            - If a task is unclear, ask for clarification before proceeding
-            """;
 
     private final AgentStateStore stateStore;
 
@@ -151,6 +136,10 @@ public class CodingAgentController {
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FileReadTool());
         toolkit.registerTool(new ShellCommandTool());
+        toolkit.registerTool(new FetchUrlTool());
+        toolkit.registerTool(new WebSearchTool());
+        toolkit.registerTool(new HttpRequestTool());
+        toolkit.registerTool(new GitHubApiTool());
 
         return ReActAgent.builder()
                 .name("BabiCodingAgent")

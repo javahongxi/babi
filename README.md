@@ -4,21 +4,43 @@
 
 > 技术栈：AgentScope Java 2.0.0 + Spring Boot 4.1.0
 
-前置条件
+## 环境准备
+
 ```bash
+# 必需 — 通义千问 API Key
 export DASHSCOPE_API_KEY=your_api_key
+
+# 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
+export GITHUB_TOKEN=your_github_token
 ```
 
 ## babi-codingagent
 
-采用 ReAct（Reasoning and Acting）模式的编程助手，能够读取文件、执行 Shell 命令，辅助完成代码分析、构建、调试等开发任务。
+采用 ReAct（Reasoning and Acting）模式的编程助手，能够读取文件、执行 Shell 命令、访问 GitHub API、搜索网页等，辅助完成代码分析、构建、调试等开发任务。
+
+### 内置工具
+
+| 工具 | 说明 |
+|------|------|
+| `read_file` | 读取本地文件内容 |
+| `shell_command` | 执行 Shell 命令（ls、git、mvn 等） |
+| `fetch_url` | 抓取网页内容，保留结构化文本 |
+| `web_search` | 联网搜索（需 `TAVILY_API_KEY`） |
+| `http_request` | 通用 HTTP 请求（GET/POST/PUT/DELETE/PATCH） |
+| `github_api_request` | GitHub REST API 调用，Token 自动注入 |
+| `github_pinned_repos` | GitHub 置顶仓库查询（GraphQL），返回 Markdown 格式 |
+
+**GitHub 集成特性：**
+- Token 自动注入：从 `GITHUB_TOKEN` / `GH_TOKEN` 环境变量读取，Agent 不接触原始令牌
+- GraphQL 查询自动修复：拦截所有 POST `/graphql` 请求，自动将单行查询格式化为 GitHub 要求的多行格式
+- Pinned 仓库 Markdown 展示：自动将 GraphQL 响应解析为可读的 Markdown（仓库名、描述、Stars、Forks、语言）
 
 ### 快速开始
 
 **命令行交互模式：**
 
 ```bash
-mvn exec:java -pl babi-codingagent -Dexec.mainClass="org.hongxi.babi.codingagent.CodingAgentCli"
+mvn exec:java -pl babi-codingagent
 ```
 
 启动后进入交互式对话：
@@ -40,7 +62,9 @@ BabiCodingAgent: 我来执行 ls 命令查看当前目录的文件...
 mvn spring-boot:run -pl babi-codingagent
 ```
 
-**打开浏览器访问 http://localhost:8082 即可使用聊天界面。**
+**打开浏览器访问 `http://localhost:8082` 即可使用聊天界面。**
+
+聊天界面支持 Markdown 渲染（标题、代码块、表格、链接等），实时显示工具调用状态，支持多轮会话（通过 Session ID 保持上下文）。
 
 ### Web API
 
@@ -74,9 +98,13 @@ curl -N -G "http://localhost:8082/api/chat/stream" \
 curl -N -G "http://localhost:8082/api/chat/stream" \
   --data-urlencode "message=帮我读一下 pom.xml 的内容"
 
-# 构建项目
+# 查询 GitHub 置顶仓库
 curl -N -G "http://localhost:8082/api/chat/stream" \
-  --data-urlencode "message=执行 mvn compile 并告诉我结果"
+  --data-urlencode "message=查看我的 pinned 仓库"
+
+# 查询 GitHub 仓库 Issues
+curl -N -G "http://localhost:8082/api/chat/stream" \
+  --data-urlencode "message=查看 javahongxi/whatsmars 的 issues"
 ```
 
 > **注意：** 中文消息需要使用 `--data-urlencode` 让 curl 自动进行 URL 编码，直接拼在 URL 里会导致 400 错误。`-N` 参数禁用缓冲，确保实时看到流式输出。
@@ -107,50 +135,6 @@ data: {"type":"tool_result","tool":"shell_command","state":"SUCCESS"}
 ```
 event: done
 data: {"type":"done"}
-```
-
-### 自定义工具
-
-在 `tool/` 包下新建类，使用 `@Tool` 和 `@ToolParam` 注解即可：
-
-```java
-public class MyTool {
-
-    @Tool(name = "my_tool", description = "工具描述")
-    public String doSomething(
-            @ToolParam(name = "param1", description = "参数说明") String param1) {
-        return "result";
-    }
-}
-```
-
-然后在 Controller 或 CLI 中注册：
-
-```java
-toolkit.registerTool(new MyTool());
-```
-
-### 核心 API 用法
-
-Agent 构建使用 AgentScope Java 的 Builder 模式：
-
-```java
-ReActAgent agent = ReActAgent.builder()
-        .name("BabiCodingAgent")           // Agent 名称
-        .sysPrompt("You are a ...")        // 系统提示词
-        .model("dashscope:qwen-plus")      // 模型（格式：provider:model_name）
-        .toolkit(toolkit)                  // 工具集
-        .maxIters(20)                      // 最大推理-行动迭代次数
-        .build();
-
-// 流式调用
-agent.streamEvents(new UserMessage("你的问题"))
-       .doOnNext(event -> {
-           if (event instanceof TextBlockDeltaEvent e) {
-               System.out.print(e.getDelta());
-           }
-       })
-       .blockLast();
 ```
 
 &copy; [hongxi.org](http://hongxi.org)
