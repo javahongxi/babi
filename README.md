@@ -62,7 +62,7 @@ BabiCodingAgent: 我来执行 ls 命令查看当前目录的文件...
 mvn spring-boot:run -pl babi-codingagent
 ```
 
-**打开浏览器访问 `http://localhost:8082` 即可使用聊天界面。**
+**打开浏览器访问 `http://localhost:8900` 即可使用聊天界面。**
 
 聊天界面支持 Markdown 渲染（标题、代码块、表格、链接等），实时显示工具调用状态，支持多轮会话（通过 Session ID 保持上下文）。
 
@@ -86,24 +86,24 @@ mvn spring-boot:run -pl babi-codingagent
 
 ```bash
 # 基本用法
-curl -N -G "http://localhost:8082/api/chat/stream" \
+curl -N -G "http://localhost:8900/api/chat/stream" \
   --data-urlencode "message=帮我执行命令pwd"
 
 # 指定 sessionId
-curl -N -G "http://localhost:8082/api/chat/stream" \
+curl -N -G "http://localhost:8900/api/chat/stream" \
   --data-urlencode "message=查看当前 git 状态" \
   --data-urlencode "sessionId=dev-001"
 
 # 读取文件
-curl -N -G "http://localhost:8082/api/chat/stream" \
+curl -N -G "http://localhost:8900/api/chat/stream" \
   --data-urlencode "message=帮我读一下 pom.xml 的内容"
 
 # 查询 GitHub 置顶仓库
-curl -N -G "http://localhost:8082/api/chat/stream" \
+curl -N -G "http://localhost:8900/api/chat/stream" \
   --data-urlencode "message=查看我的 pinned 仓库"
 
 # 查询 GitHub 仓库 Issues
-curl -N -G "http://localhost:8082/api/chat/stream" \
+curl -N -G "http://localhost:8900/api/chat/stream" \
   --data-urlencode "message=查看 javahongxi/whatsmars 的 issues"
 ```
 
