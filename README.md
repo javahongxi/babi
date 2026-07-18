@@ -1,8 +1,16 @@
 # Babi Agents 🌏
 
-基于 [AgentScope Java](https://github.com/agentscope-ai/agentscope-java) 构建的 AI Agent 集合项目。每个 Agent 作为独立模块，共享统一的工具体系和模型接入层。
+AI Agent 产品，每个 Agent 作为独立模块，共享统一的工具体系和模型接入层，框架选型以产品需求为导向，不局限于单一 Agent 框架。
 
 > 技术栈：AgentScope Java 2.0.0 + Spring Boot 4.1.0
+
+## 项目矩阵
+
+| 项目                                                                         | AI 定位       | 说明                                                            |
+|----------------------------------------------------------------------------|-------------|---------------------------------------------------------------|
+| [whatsmars](https://github.com/javahongxi/whatsmars)                       | AI 使用与学习    | Spring AI / Spring AI Alibaba / LangChain4j 多框架实践，AI 能力的学习与验证 |
+| [spring-cloud-samples](https://github.com/javahongxi/spring-cloud-samples) | 微服务 + AI 集成 | AI 能力在微服务架构中的落地与集成                                            |
+| **babi**                                                                   | Agent 产品    | AI Agent 产品，框架选型以产品需求为导向                                      |
 
 ## 环境准备
 
@@ -20,14 +28,14 @@ export GITHUB_TOKEN=your_github_token
 
 ### 内置工具
 
-| 工具 | 说明 |
-|------|------|
-| `read_file` | 读取本地文件内容 |
-| `shell_command` | 执行 Shell 命令（ls、git、mvn 等） |
-| `fetch_url` | 抓取网页内容，保留结构化文本 |
-| `web_search` | 联网搜索（需 `TAVILY_API_KEY`） |
-| `http_request` | 通用 HTTP 请求（GET/POST/PUT/DELETE/PATCH） |
-| `github_api_request` | GitHub REST API 调用，Token 自动注入 |
+| 工具                    | 说明                                    |
+|-----------------------|---------------------------------------|
+| `read_file`           | 读取本地文件内容                              |
+| `shell_command`       | 执行 Shell 命令（ls、git、mvn 等）             |
+| `fetch_url`           | 抓取网页内容，保留结构化文本                        |
+| `web_search`          | 联网搜索（需 `TAVILY_API_KEY`）              |
+| `http_request`        | 通用 HTTP 请求（GET/POST/PUT/DELETE/PATCH） |
+| `github_api_request`  | GitHub REST API 调用，Token 自动注入         |
 | `github_pinned_repos` | GitHub 置顶仓库查询（GraphQL），返回 Markdown 格式 |
 
 **GitHub 集成特性：**
@@ -68,17 +76,17 @@ mvn spring-boot:run -pl babi-codingagent
 
 ### Web API
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/chat/stream` | GET | SSE 流式输出，实时推送文本和工具调用事件 |
-| `/api/chat/send` | GET | 同步接口，等待 Agent 完整回复后一次返回 |
+| 接口                 | 方法  | 说明                      |
+|--------------------|-----|-------------------------|
+| `/api/chat/stream` | GET | SSE 流式输出，实时推送文本和工具调用事件  |
+| `/api/chat/send`   | GET | 同步接口，等待 Agent 完整回复后一次返回 |
 
 **参数：**
 
-| 参数 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `message` | 是 | - | 发送给 Agent 的消息 |
-| `sessionId` | 否 | `default` | 会话 ID，用于多轮对话上下文保持 |
+| 参数          | 必填 | 默认值       | 说明                |
+|-------------|----|-----------|-------------------|
+| `message`   | 是  | -         | 发送给 Agent 的消息     |
+| `sessionId` | 否  | `default` | 会话 ID，用于多轮对话上下文保持 |
 
 ### curl 示例
 
