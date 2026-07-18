@@ -1,4 +1,4 @@
-package org.hongxi.babi.codingagent;
+package org.hongxi.babi.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.ReActAgent;
@@ -10,12 +10,12 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
-import org.hongxi.babi.codingagent.tool.FetchUrlTool;
-import org.hongxi.babi.codingagent.tool.FileReadTool;
-import org.hongxi.babi.codingagent.tool.GitHubApiTool;
-import org.hongxi.babi.codingagent.tool.HttpRequestTool;
-import org.hongxi.babi.codingagent.tool.ShellCommandTool;
-import org.hongxi.babi.codingagent.tool.WebSearchTool;
+import org.hongxi.babi.agent.tool.FetchUrlTool;
+import org.hongxi.babi.agent.tool.FileReadTool;
+import org.hongxi.babi.agent.tool.GitHubApiTool;
+import org.hongxi.babi.agent.tool.HttpRequestTool;
+import org.hongxi.babi.agent.tool.ShellCommandTool;
+import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,14 +30,14 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.hongxi.babi.codingagent.AgentConstants.SYSTEM_PROMPT;
+import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
 
 /**
- * Web API for the Coding Agent.
+ * Web API for the Babi Agent.
  *
  * <p>Provides both SSE streaming and synchronous chat endpoints.
  * Each request creates a new {@link ReActAgent} instance (ReActAgent is NOT thread-safe),
- * sharing the the same {@link AgentStateStore} for session persistence.
+ * sharing the same {@link AgentStateStore} for session persistence.
  *
  * <p>Endpoints:
  * <ul>
@@ -47,15 +47,15 @@ import static org.hongxi.babi.codingagent.AgentConstants.SYSTEM_PROMPT;
  */
 @RestController
 @RequestMapping("/api/chat")
-public class CodingAgentController {
+public class BabiAgentController {
 
-    private static final Logger log = LoggerFactory.getLogger(CodingAgentController.class);
+    private static final Logger log = LoggerFactory.getLogger(BabiAgentController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
     private final AgentStateStore stateStore;
 
-    public CodingAgentController() {
+    public BabiAgentController() {
         Path sessionPath = Paths.get(System.getProperty("user.home"), ".babi", "sessions");
         this.stateStore = new JsonFileAgentStateStore(sessionPath);
         log.info("Session store initialized at: {}", sessionPath);
@@ -142,7 +142,7 @@ public class CodingAgentController {
         toolkit.registerTool(new GitHubApiTool());
 
         return ReActAgent.builder()
-                .name("BabiCodingAgent")
+                .name("BabiAgent")
                 .sysPrompt(SYSTEM_PROMPT)
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)

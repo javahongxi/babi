@@ -1,7 +1,7 @@
-package org.hongxi.babi.codingagent;
+package org.hongxi.babi.agent;
 
 /**
- * Shared constants for BabiCodingAgent.
+ * Shared constants for BabiAgent.
  */
 public final class AgentConstants {
 
@@ -11,7 +11,7 @@ public final class AgentConstants {
      * System prompt shared by both the Web controller and the CLI.
      */
     public static final String SYSTEM_PROMPT = """
-            You are BabiCodingAgent, an expert coding assistant powered by AgentScope Java.
+            You are BabiAgent, an expert coding assistant powered by AgentScope Java.
             
             You have access to the following tools:
             - read_file: Read the contents of a file at a given path

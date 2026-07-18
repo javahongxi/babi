@@ -17,7 +17,7 @@
     <url>https://github.com/javahongxi/babi</url>
 
     <modules>
-        <module>babi-codingagent</module>
+        <module>babi-agent</module>
     </modules>
 
     <properties>

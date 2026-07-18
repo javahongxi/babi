@@ -9,8 +9,8 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>babi-codingagent</artifactId>
-    <name>Babi Coding Agent</name>
+    <artifactId>babi-agent</artifactId>
+    <name>Babi Agent</name>
     <description>Coding Agent based on AgentScope Java</description>
 
     <dependencies>
@@ -43,7 +43,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>org.hongxi.babi.codingagent.CodingAgentApplication</mainClass>
+                    <mainClass>org.hongxi.babi.agent.BabiAgentApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -58,7 +58,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.6.3</version>
                 <configuration>
-                    <mainClass>org.hongxi.babi.codingagent.CodingAgentCli</mainClass>
+                    <mainClass>org.hongxi.babi.agent.BabiAgentCli</mainClass>
                 </configuration>
             </plugin>
         </plugins>

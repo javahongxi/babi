@@ -1,34 +1,34 @@
-package org.hongxi.babi.codingagent;
+package org.hongxi.babi.agent;
 
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Toolkit;
-import org.hongxi.babi.codingagent.tool.FetchUrlTool;
-import org.hongxi.babi.codingagent.tool.FileReadTool;
-import org.hongxi.babi.codingagent.tool.GitHubApiTool;
-import org.hongxi.babi.codingagent.tool.HttpRequestTool;
-import org.hongxi.babi.codingagent.tool.ShellCommandTool;
-import org.hongxi.babi.codingagent.tool.WebSearchTool;
+import org.hongxi.babi.agent.tool.FetchUrlTool;
+import org.hongxi.babi.agent.tool.FileReadTool;
+import org.hongxi.babi.agent.tool.GitHubApiTool;
+import org.hongxi.babi.agent.tool.HttpRequestTool;
+import org.hongxi.babi.agent.tool.ShellCommandTool;
+import org.hongxi.babi.agent.tool.WebSearchTool;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-import static org.hongxi.babi.codingagent.AgentConstants.SYSTEM_PROMPT;
+import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
 
 /**
- * CLI entry point for the Coding Agent.
+ * CLI entry point for the Babi Agent.
  *
- * <p>Provides an interactive console for chatting with the coding agent.
+ * <p>Provides an interactive console for chatting with the babi agent.
  *
  * <p><b>Run:</b>
  * <pre>
  *   export DASHSCOPE_API_KEY=your_key
- *   mvn exec:java -pl babi-codingagent
+ *   mvn exec:java -pl babi-agent
  * </pre>
  */
-public class CodingAgentCli {
+public class BabiAgentCli {
 
     public static void main(String[] args) throws Exception {
         String apiKey = System.getenv("DASHSCOPE_API_KEY");
@@ -40,7 +40,7 @@ public class CodingAgentCli {
         }
 
         System.out.println("\n" + "=".repeat(60));
-        System.out.println("Babi Coding Agent - Powered by AgentScope Java");
+        System.out.println("Babi Agent - Powered by AgentScope Java");
         System.out.println("=".repeat(60));
         System.out.println("An AI coding assistant with file reading and shell tools.");
         System.out.println("Type 'exit' to quit.\n");
@@ -55,7 +55,7 @@ public class CodingAgentCli {
         toolkit.registerTool(new GitHubApiTool());
 
         ReActAgent agent = ReActAgent.builder()
-                .name("BabiCodingAgent")
+                .name("BabiAgent")
                 .sysPrompt(SYSTEM_PROMPT)
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)
@@ -78,7 +78,7 @@ public class CodingAgentCli {
 
             Msg userMsg = new UserMessage(input.trim());
 
-            System.out.print("\nBabiCodingAgent: ");
+            System.out.print("\nBabiAgent: ");
             agent.streamEvents(userMsg)
                     .doOnNext(event -> {
                         if (event instanceof TextBlockDeltaEvent e) {

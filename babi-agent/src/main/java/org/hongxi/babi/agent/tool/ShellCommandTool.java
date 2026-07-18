@@ -1,4 +1,4 @@
-package org.hongxi.babi.codingagent.tool;
+package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;

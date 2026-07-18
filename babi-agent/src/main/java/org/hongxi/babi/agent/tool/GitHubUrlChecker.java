@@ -1,4 +1,4 @@
-package org.hongxi.babi.codingagent.tool;
+package org.hongxi.babi.agent.tool;
 
 import java.net.URI;
 

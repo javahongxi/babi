@@ -1,4 +1,4 @@
-package org.hongxi.babi.codingagent;
+package org.hongxi.babi.agent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,21 +8,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
 /**
- * Spring Boot application entry point for the Coding Agent.
+ * Spring Boot application entry point for the Babi Agent.
  *
- * <p>Provides a web API for the BabiCodingAgent via {@link CodingAgentController},
+ * <p>Provides a web API for the BabiAgent via {@link BabiAgentController},
  * supporting both SSE streaming and synchronous chat endpoints.
  *
  * <p><b>Run:</b>
  * <pre>
  *   export DASHSCOPE_API_KEY=your_key
- *   mvn spring-boot:run -pl babi-codingagent
+ *   mvn spring-boot:run -pl babi-agent
  * </pre>
  */
 @SpringBootApplication
-public class CodingAgentApplication {
+public class BabiAgentApplication {
     public static void main(String[] args) {
-        SpringApplication.run(CodingAgentApplication.class, args);
+        SpringApplication.run(BabiAgentApplication.class, args);
     }
 
     @Bean

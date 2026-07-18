@@ -1,4 +1,4 @@
-package org.hongxi.babi.codingagent.tool;
+package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.Tool;
@@ -104,7 +104,7 @@ public class GitHubApiTool {
                             .header("Accept", "application/vnd.github.v3+json")
                             .header("X-GitHub-Api-Version", "2022-11-28")
                             .header("Content-Type", "application/json")
-                            .header("User-Agent", "BabiCodingAgent/1.0")
+                            .header("User-Agent", "BabiAgent/1.0")
                             .timeout(Duration.ofSeconds(30))
                             .method(method != null ? method.toUpperCase() : "GET", publisher)
                             .build();
@@ -186,7 +186,7 @@ public class GitHubApiTool {
                             .uri(URI.create(GITHUB_GRAPHQL_URL))
                             .header("Authorization", "Bearer " + token)
                             .header("Content-Type", "application/json")
-                            .header("User-Agent", "BabiCodingAgent/1.0")
+                            .header("User-Agent", "BabiAgent/1.0")
                             .timeout(Duration.ofSeconds(30))
                             .POST(HttpRequest.BodyPublishers.ofString(graphql))
                             .build();

@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: babi-codingagent
+    name: babi-agent
 
 agentscope:
   model:

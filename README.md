@@ -1,16 +1,8 @@
-# Babi Agents 🌏
+# Babi Agent 🌏
 
-AI Agent 产品，每个 Agent 作为独立模块，共享统一的工具体系和模型接入层，框架选型以产品需求为导向，不局限于单一 Agent 框架。
+面向开发者的 AI Coding Agent，基于 ReAct 模式提供代码分析、构建、调试等开发辅助能力。未来将持续扩展更多 Agent 功能，以内置多 Agent 协作模式融合各类开发者场景，产品核心始终聚焦 Coding Agent。
 
 > 技术栈：AgentScope Java 2.0.0 + Spring Boot 4.1.0
-
-## 项目矩阵
-
-| 项目                                                                         | AI 定位       | 说明                                                            |
-|----------------------------------------------------------------------------|-------------|---------------------------------------------------------------|
-| [whatsmars](https://github.com/javahongxi/whatsmars)                       | AI 使用与学习    | Spring AI / Spring AI Alibaba / LangChain4j 多框架实践，AI 能力的学习与验证 |
-| [spring-cloud-samples](https://github.com/javahongxi/spring-cloud-samples) | 微服务 + AI 集成 | AI 能力在微服务架构中的落地与集成                                            |
-| **babi**                                                                   | Agent 产品    | AI Agent 产品，框架选型以产品需求为导向                                      |
 
 ## 环境准备
 
@@ -22,9 +14,9 @@ export DASHSCOPE_API_KEY=your_api_key
 export GITHUB_TOKEN=your_github_token
 ```
 
-## babi-codingagent
+## Coding Agent
 
-采用 ReAct（Reasoning and Acting）模式的编程助手，能够读取文件、执行 Shell 命令、访问 GitHub API、搜索网页等，辅助完成代码分析、构建、调试等开发任务。
+Babi 的核心产品模块，采用 ReAct（Reasoning and Acting）模式，能够读取文件、执行 Shell 命令、访问 GitHub API、搜索网页等，辅助完成代码分析、构建、调试等开发任务。
 
 ### 内置工具
 
@@ -48,26 +40,26 @@ export GITHUB_TOKEN=your_github_token
 **命令行交互模式：**
 
 ```bash
-mvn exec:java -pl babi-codingagent
+mvn exec:java -pl babi-agent
 ```
 
 启动后进入交互式对话：
 
 ```
 ============================================================
-Babi Coding Agent - Powered by AgentScope Java
+Babi Agent - Powered by AgentScope Java
 ============================================================
 An AI coding assistant with file reading and shell tools.
 Type 'exit' to quit.
 
 You: 帮我看看当前目录有哪些文件
-BabiCodingAgent: 我来执行 ls 命令查看当前目录的文件...
+BabiAgent: 我来执行 ls 命令查看当前目录的文件...
 ```
 
 **Spring Boot Web 服务模式：**
 
 ```bash
-mvn spring-boot:run -pl babi-codingagent
+mvn spring-boot:run -pl babi-agent
 ```
 
 **打开浏览器访问 `http://localhost:8900` 即可使用聊天界面。**
