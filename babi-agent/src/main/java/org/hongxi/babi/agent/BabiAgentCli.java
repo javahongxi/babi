@@ -5,6 +5,7 @@ import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Toolkit;
+import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
@@ -60,6 +61,7 @@ public class BabiAgentCli {
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)
                 .maxIters(20)
+                .middleware(new ContextTruncateMiddleware(30))
                 .build();
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));

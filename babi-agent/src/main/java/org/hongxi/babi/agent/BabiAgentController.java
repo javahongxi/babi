@@ -10,6 +10,7 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
@@ -158,6 +159,7 @@ public class BabiAgentController {
                 .stateStore(stateStore)
                 .defaultSessionId(sessionId)
                 .maxIters(20)
+                .middleware(new ContextTruncateMiddleware(30))
                 .build();
     }
 
