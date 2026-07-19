@@ -41,8 +41,8 @@ import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
  *
  * <p>Endpoints:
  * <ul>
- *   <li>{@code POST /api/chat/stream} — SSE streaming (form params: message, sessionId)</li>
- *   <li>{@code POST /api/chat/send} — synchronous reply (JSON body)</li>
+ *   <li>{@code GET /api/chat/stream} — SSE streaming (form params: message, sessionId)</li>
+ *   <li>{@code GET /api/chat/send} — synchronous reply (form params: message, sessionId)</li>
  * </ul>
  */
 @RestController
@@ -65,7 +65,14 @@ public class BabiAgentController {
      * SSE streaming chat endpoint.
      *
      * <p>Streams text deltas, tool calls, and tool results as Server-Sent Events.
-     * <p>Use curl to test: {@code curl -N "http://localhost:8082/api/chat/stream?message=hello"}
+     * <p>Use curl to test:
+     * <p>
+     *     中文消息需要使用 --data-urlencode 让 curl 自动进行 URL 编码，直接拼在 URL 里会导致 400 错误。
+     *     -N 参数禁用缓冲，确保实时看到流式输出。
+     * </p>
+     * <pre>
+     * {@code curl -N -G "http://localhost:8900/api/chat/stream" --data-urlencode "message=帮我执行命令pwd"}
+     * </pre>
      *
      * @param message   user message
      * @param sessionId session identifier (defaults to "default")
@@ -88,7 +95,9 @@ public class BabiAgentController {
                         .forEach(event -> {
                             try {
                                 if (event instanceof TextBlockDeltaEvent e) {
-                                    emitter.send(sse("token", Map.of("type", "token", "data", e.getDelta())));
+                                    emitter.send(sse("token", Map.of(
+                                            "type", "token",
+                                            "data", e.getDelta())));
                                 } else if (event instanceof ToolCallStartEvent e) {
                                     emitter.send(sse("tool_call", Map.of(
                                             "type", "tool_call",

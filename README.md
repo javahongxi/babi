@@ -1,6 +1,7 @@
 # Babi Agent ♻️
 
-面向开发者的 AI Coding Agent，基于 ReAct 模式提供代码分析、构建、调试等开发辅助能力。未来将持续扩展更多 Agent 功能，以内置多 Agent 协作模式融合各类开发者场景，产品核心始终聚焦 Coding Agent。
+面向开发者的 AI Coding Agent，基于 ReAct 模式提供代码分析、构建、调试等开发辅助能力。
+未来将持续扩展更多 Agent 功能，以内置多 Agent 协作模式融合各类开发者场景，产品核心始终聚焦 Coding Agent。
 
 > 技术栈：AgentScope Java 2.0.0 + Spring Boot 4.1.0
 
@@ -44,45 +45,5 @@ mvn spring-boot:run -pl babi-agent
 打开浏览器访问 `http://localhost:8900` 即可使用聊天界面。
 
 聊天界面支持 Markdown 渲染（标题、代码块、表格、链接等），实时显示工具调用状态，支持多轮会话（通过 Session ID 保持上下文）。
-
-## 说明
-
-### 关于 curl
-
-```bash
-# 基本用法
-curl -N -G "http://localhost:8900/api/chat/stream" \
-  --data-urlencode "message=帮我执行命令pwd"
-```
-
-中文消息需要使用 `--data-urlencode` 让 curl 自动进行 URL 编码，直接拼在 URL 里会导致 400 错误。`-N` 参数禁用缓冲，确保实时看到流式输出。
-
-### SSE 事件格式
-
-流式接口推送以下事件：
-
-**文本增量（token）：**
-```
-event: token
-data: {"type":"token","data":"你好"}
-```
-
-**工具调用开始（tool_call）：**
-```
-event: tool_call
-data: {"type":"tool_call","tool":"shell_command"}
-```
-
-**工具调用结果（tool_result）：**
-```
-event: tool_result
-data: {"type":"tool_result","tool":"shell_command","state":"SUCCESS"}
-```
-
-**完成标记（done）：**
-```
-event: done
-data: {"type":"done"}
-```
 
 &copy; [hongxi.org](http://hongxi.org)
