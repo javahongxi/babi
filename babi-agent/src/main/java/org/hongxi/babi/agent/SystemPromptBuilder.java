@@ -26,6 +26,7 @@ public final class SystemPromptBuilder {
         return String.join("\n\n",
                 identitySection(),
                 toolsSection(),
+                skillsSection(),
                 coreRulesSection(),
                 githubSection(),
                 guidelinesSection(),
@@ -68,6 +69,26 @@ public final class SystemPromptBuilder {
                 - github_api_request: Call GitHub REST API (token auto-injected, for issues/PRs/repos/search)
                 - github_pinned_repos: Query a GitHub user's pinned repositories via GraphQL (token auto-injected)
                 - todo_write: Create or update a task list for tracking multi-step progress
+                - list_skills: List all available skills (Markdown-based workflow instruction sets)
+                - use_skill: Activate a skill by name to get its full instructions
+                """;
+    }
+
+    private static String skillsSection() {
+        return """
+                SKILLS SYSTEM:
+                Skills are reusable workflow instructions stored as Markdown files.
+                They are loaded from two directories:
+                - ~/.agents/skills/ — global shared skills (cross-project reuse)
+                - ~/.babi/skills/   — Babi-specific skills (higher priority, overrides global)
+
+                When the user asks you to perform a task that might match a skill:
+                1. Call list_skills to see what's available
+                2. Call use_skill(skill_name) to get the full instructions
+                3. Follow the instructions to complete the task
+
+                You can also proactively suggest skills when the user's request aligns
+                with an available skill's purpose.
                 """;
     }
 

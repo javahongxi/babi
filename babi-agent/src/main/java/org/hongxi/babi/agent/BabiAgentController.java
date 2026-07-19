@@ -18,6 +18,7 @@ import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
+import org.hongxi.babi.agent.tool.SkillTool;
 import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
@@ -156,6 +157,7 @@ public class BabiAgentController {
         toolkit.registerTool(new GitHubApiTool());
         toolkit.registerTool(new CodeSearchTool());
         toolkit.registerTool(new TodoWriteTool());
+        toolkit.registerTool(new SkillTool());
 
         return ReActAgent.builder()
                 .name("BabiAgent")
