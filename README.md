@@ -17,33 +17,22 @@ export GITHUB_TOKEN=your_github_token
 
 ## 快速开始
 
-### 命令行交互模式
-
-```bash
-mvn exec:java -pl babi-agent
-```
-
-启动后进入交互式对话：
-
-```
-============================================================
-Babi Agent - Powered by AgentScope Java
-============================================================
-An AI coding assistant with file reading and shell tools.
-Type 'exit' to quit.
-
-You: 帮我看看当前目录有哪些文件
-BabiAgent: 我来执行 ls 命令查看当前目录的文件...
-```
-
-### Web 服务模式
+### Web 聊天界面（推荐）
 
 ```bash
 mvn spring-boot:run -pl babi-agent
 ```
 
-打开浏览器访问 `http://localhost:8900` 即可使用聊天界面。
+打开浏览器访问 `http://localhost:8900`，即可在聊天界面中与 Babi Agent 交互。
 
-聊天界面支持 Markdown 渲染（标题、代码块、表格、链接等），实时显示工具调用状态，支持多轮会话（通过 Session ID 保持上下文）。
+支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
+
+### 命令行模式
+
+```bash
+mvn exec:java -pl babi-agent
+```
+
+启动后进入交互式终端对话，适合快速调试或无 GUI 环境。
 
 &copy; [hongxi.org](http://hongxi.org)
