@@ -159,9 +159,12 @@
 
         function clearChat() {
             chatInner.innerHTML = '';
-            // Generate a new session id to truly clear server-side context
-            const newSession = 'session-' + Date.now().toString(36);
-            sessionIdInput.value = newSession;
+            const sessionId = sessionIdInput.value.trim() || 'default';
+            // Delete session file on server
+            fetch('/api/chat/session?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => console.log('Session deleted:', data.message))
+                .catch(err => console.warn('Delete session failed:', err));
         }
 
         function renderMarkdown(el, text) {

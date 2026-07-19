@@ -23,6 +23,7 @@ import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -144,6 +145,20 @@ public class BabiAgentController {
         Msg userMsg = new UserMessage(message);
         Msg reply = agent.call(userMsg).block();
         return reply.getTextContent() != null ? reply.getTextContent() : "";
+    }
+
+    /**
+     * Delete a session and its persisted state.
+     *
+     * @param sessionId session identifier to delete
+     * @return result message
+     */
+    @DeleteMapping("/session")
+    public Map<String, String> deleteSession(
+            @RequestParam String sessionId) {
+        stateStore.delete(null, sessionId);
+        log.info("Session deleted: {}", sessionId);
+        return Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted");
     }
 
     private ReActAgent buildAgent(String sessionId) {
