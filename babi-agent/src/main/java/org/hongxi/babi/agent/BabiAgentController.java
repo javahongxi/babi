@@ -11,11 +11,14 @@ import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
+import org.hongxi.babi.agent.tool.CodeSearchTool;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
+import org.hongxi.babi.agent.tool.FileEditTool;
 import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
+import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,11 +148,14 @@ public class BabiAgentController {
     private ReActAgent buildAgent(String sessionId) {
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FileReadTool());
+        toolkit.registerTool(new FileEditTool());
         toolkit.registerTool(new ShellCommandTool());
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new WebSearchTool());
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
+        toolkit.registerTool(new CodeSearchTool());
+        toolkit.registerTool(new TodoWriteTool());
 
         return ReActAgent.builder()
                 .name("BabiAgent")

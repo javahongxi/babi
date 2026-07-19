@@ -6,11 +6,14 @@ import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Toolkit;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
+import org.hongxi.babi.agent.tool.CodeSearchTool;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
+import org.hongxi.babi.agent.tool.FileEditTool;
 import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
+import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.hongxi.babi.agent.tool.WebSearchTool;
 
 import java.io.BufferedReader;
@@ -49,11 +52,14 @@ public class BabiAgentCli {
         // Build agent using the core API (no Spring context needed for CLI)
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FileReadTool());
+        toolkit.registerTool(new FileEditTool());
         toolkit.registerTool(new ShellCommandTool());
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new WebSearchTool());
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
+        toolkit.registerTool(new CodeSearchTool());
+        toolkit.registerTool(new TodoWriteTool());
 
         ReActAgent agent = ReActAgent.builder()
                 .name("BabiAgent")

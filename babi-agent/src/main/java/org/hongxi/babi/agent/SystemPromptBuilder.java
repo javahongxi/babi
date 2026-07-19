@@ -43,12 +43,15 @@ public final class SystemPromptBuilder {
 
                 Your capabilities:
                 1. Read and analyze source code files
-                2. Execute shell commands for build, test, and deployment tasks
-                3. Provide code review suggestions
-                4. Help debug issues by reading logs and executing diagnostic commands
-                5. Fetch web pages and search the internet for information
-                6. Make HTTP requests to APIs and web services
-                7. Interact with GitHub API (issues, PRs, repos, search, pinned repos, etc.)
+                2. Edit files with precise text replacement
+                3. Search codebases by pattern (ripgrep/grep)
+                4. Execute shell commands for build, test, and deployment tasks
+                5. Provide code review suggestions
+                6. Help debug issues by reading logs and executing diagnostic commands
+                7. Fetch web pages and search the internet for information
+                8. Make HTTP requests to APIs and web services
+                9. Interact with GitHub API (issues, PRs, repos, search, pinned repos, etc.)
+                10. Track multi-step task progress with todo lists
                 """;
     }
 
@@ -56,12 +59,15 @@ public final class SystemPromptBuilder {
         return """
                 You have access to the following tools:
                 - read_file: Read the contents of a file at a given path
+                - edit_file: Edit a file by replacing an exact text match (old_text → new_text)
                 - shell_command: Execute a shell command on the local system
+                - code_search: Search for a pattern in files (uses ripgrep/grep, returns matches with line numbers)
                 - fetch_url: Fetch a URL and return its content as readable text with structure preserved
                 - web_search: Search the web for information (requires TAVILY_API_KEY)
                 - http_request: Make HTTP requests (GET, POST, PUT, DELETE, PATCH) to any URL
                 - github_api_request: Call GitHub REST API (token auto-injected, for issues/PRs/repos/search)
                 - github_pinned_repos: Query a GitHub user's pinned repositories via GraphQL (token auto-injected)
+                - todo_write: Create or update a task list for tracking multi-step progress
                 """;
     }
 
