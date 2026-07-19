@@ -88,7 +88,8 @@ public class BabiAgentCli {
                         }
                     })
                     .blockLast();
-            System.out.println("\n");
+            System.out.printf("\n[context: %d messages]%n%n",
+                    agent.getAgentState().getContext().size());
         }
     }
 }
