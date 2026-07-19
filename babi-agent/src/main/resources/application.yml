@@ -8,4 +8,4 @@ spring:
 agentscope:
   model:
     provider: dashscope
-    name: qwen3.7-plus
+    name: qwen-plus
