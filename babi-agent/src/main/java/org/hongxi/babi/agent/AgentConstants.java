@@ -1,5 +1,8 @@
 package org.hongxi.babi.agent;
 
+import io.agentscope.core.model.Model;
+import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
+
 import java.nio.file.Path;
 
 /**
@@ -39,5 +42,31 @@ public final class AgentConstants {
                 ? System.getProperty("user.home") + raw.substring(1)
                 : raw;
         return Path.of(expanded).toAbsolutePath().normalize().toString();
+    }
+
+    /**
+     * Creates the DashScope chat model with built-in web search enabled.
+     *
+     * <p>Uses the existing {@code DASHSCOPE_API_KEY} environment variable,
+     * so no additional API key (e.g. Tavily) is needed for web search.
+     *
+     * @return configured model instance
+     */
+    public static Model createModel() {
+        String apiKey = System.getenv("DASHSCOPE_API_KEY");
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException(
+                    "DASHSCOPE_API_KEY environment variable is not set.");
+        }
+        // Extract model name from "dashscope:qwen-plus" -> "qwen-plus"
+        String modelName = MODEL.contains(":")
+                ? MODEL.substring(MODEL.indexOf(':') + 1)
+                : MODEL;
+        return DashScopeChatModel.builder()
+                .apiKey(apiKey)
+                .modelName(modelName)
+                .stream(true)
+                .enableSearch(true)
+                .build();
     }
 }

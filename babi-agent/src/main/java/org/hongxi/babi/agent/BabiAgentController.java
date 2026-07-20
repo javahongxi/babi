@@ -22,7 +22,6 @@ import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
 import org.hongxi.babi.agent.tool.SkillTool;
 import org.hongxi.babi.agent.tool.TodoWriteTool;
-import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -197,7 +196,6 @@ public class BabiAgentController {
         toolkit.registerTool(new FileEditTool());
         toolkit.registerTool(new ShellCommandTool(workspace));
         toolkit.registerTool(new FetchUrlTool());
-        toolkit.registerTool(new WebSearchTool());
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
         toolkit.registerTool(new CodeSearchTool());
@@ -211,7 +209,7 @@ public class BabiAgentController {
         return ReActAgent.builder()
                 .name(AgentConstants.AGENT_NAME)
                 .sysPrompt(sysPrompt)
-                .model(AgentConstants.MODEL)
+                .model(AgentConstants.createModel())
                 .toolkit(toolkit)
                 .stateStore(stateStore)
                 .defaultSessionId(sessionId)

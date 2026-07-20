@@ -91,7 +91,7 @@ public final class SystemPromptBuilder {
                 - shell_command: Execute a shell command on the local system
                 - code_search: Search for a pattern in files (uses ripgrep/grep, returns matches with line numbers)
                 - fetch_url: Fetch a URL and return its content as readable text with structure preserved
-                - web_search: Search the web for information (requires TAVILY_API_KEY)
+                - web_search: Search the web for information (built-in, no extra API key needed)
                 - http_request: Make HTTP requests (GET, POST, PUT, DELETE, PATCH) to any URL
                 - github_api_request: Call GitHub REST API (token auto-injected, for issues/PRs/repos/search)
                 - github_pinned_repos: Query a GitHub user's pinned repositories via GraphQL (token auto-injected)
