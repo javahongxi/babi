@@ -21,7 +21,6 @@ import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
 import org.hongxi.babi.agent.tool.SkillTool;
-import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -199,7 +198,6 @@ public class BabiAgentController {
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
         toolkit.registerTool(new CodeSearchTool());
-        toolkit.registerTool(new TodoWriteTool());
         SkillTool skillTool = new SkillTool();
         toolkit.registerTool(skillTool);
 
@@ -214,6 +212,7 @@ public class BabiAgentController {
                 .stateStore(stateStore)
                 .defaultSessionId(sessionId)
                 .maxIters(20)
+                .enableTaskList()
                 .middleware(new ContextTruncateMiddleware(30))
                 .middleware(new ToolNotificationMiddleware(toolEventBus))
                 .build();

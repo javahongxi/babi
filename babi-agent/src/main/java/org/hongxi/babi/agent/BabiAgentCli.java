@@ -14,7 +14,6 @@ import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.ShellCommandTool;
 import org.hongxi.babi.agent.tool.SkillTool;
-import org.hongxi.babi.agent.tool.TodoWriteTool;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -71,7 +70,6 @@ public class BabiAgentCli {
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
         toolkit.registerTool(new CodeSearchTool());
-        toolkit.registerTool(new TodoWriteTool());
         toolkit.registerTool(new SkillTool());
 
         ReActAgent agent = ReActAgent.builder()
@@ -80,6 +78,7 @@ public class BabiAgentCli {
                 .model(AgentConstants.createModel())
                 .toolkit(toolkit)
                 .maxIters(20)
+                .enableTaskList()
                 .middleware(new ContextTruncateMiddleware(30))
                 .build();
 
