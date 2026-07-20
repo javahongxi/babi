@@ -2,15 +2,17 @@ package org.hongxi.babi.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
-import io.agentscope.core.event.ToolCallStartEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import org.hongxi.babi.agent.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
+import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
 import org.hongxi.babi.agent.tool.CodeSearchTool;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.FileEditTool;
@@ -24,26 +26,34 @@ import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
- * Web API for the Babi Agent.
+ * Web API for the Babi Agent (WebFlux).
  *
  * <p>Provides both SSE streaming and synchronous chat endpoints.
  * Each request creates a new {@link ReActAgent} instance (ReActAgent is NOT thread-safe),
  * sharing the same {@link AgentStateStore} for session persistence.
+ *
+ * <p>The SSE streaming endpoint uses {@code Flux.merge()} to combine two event sources:
+ * <ul>
+ *   <li>Tool call events from {@link ToolEventBus} (published by {@link ToolNotificationMiddleware})</li>
+ *   <li>Text token events from {@code agent.streamEvents()}</li>
+ * </ul>
  *
  * <p>Endpoints:
  * <ul>
@@ -57,10 +67,10 @@ public class BabiAgentController {
 
     private static final Logger log = LoggerFactory.getLogger(BabiAgentController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
     private final AgentStateStore stateStore;
     private final String workspace;
+    private final ToolEventBus toolEventBus;
 
     public BabiAgentController(
             @Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
@@ -75,69 +85,79 @@ public class BabiAgentController {
         this.stateStore = new JsonFileAgentStateStore(sessionPath);
         log.info("Session store initialized at: {}", sessionPath);
         log.info("Agent workspace: {}", this.workspace);
+        this.toolEventBus = new ToolEventBus();
+        log.info("ToolEventBus initialized");
     }
 
     /**
      * SSE streaming chat endpoint.
      *
-     * <p>Streams text deltas, tool calls, and tool results as Server-Sent Events.
+     * <p>Merges two reactive streams into one SSE output:
+     * <ol>
+     *   <li><b>toolEvents</b> — tool call notifications from {@link ToolEventBus},
+     *       published by {@link ToolNotificationMiddleware} before each tool execution</li>
+     *   <li><b>agentEvents</b> — text deltas and tool results from {@code agent.streamEvents()}</li>
+     * </ol>
+     *
+     * <p>When the agent completes, both streams complete together via {@code Flux.merge()}.
+     *
      * <p>Use curl to test:
-     * <p>
-     *     中文消息需要使用 --data-urlencode 让 curl 自动进行 URL 编码，直接拼在 URL 里会导致 400 错误。
-     *     -N 参数禁用缓冲，确保实时看到流式输出。
-     * </p>
      * <pre>
      * {@code curl -N -G "http://localhost:8900/api/chat/stream" --data-urlencode "message=帮我执行命令pwd"}
      * </pre>
      *
      * @param message   user message
      * @param sessionId session identifier (defaults to "default")
-     * @return SSE emitter
+     * @return SSE event stream
      */
     @GetMapping(path = "/stream", produces = "text/event-stream;charset=UTF-8")
-    public SseEmitter streamChat(
+    public Flux<ServerSentEvent<String>> streamChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
-        SseEmitter emitter = new SseEmitter(0L); // no timeout
+        // 1. 工具事件流 — 由 ToolNotificationMiddleware 发布到 ToolEventBus
+        //    通过 takeUntilOther(agentFlux) 在 Agent 完成时自动结束
+        Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
+                toolEventBus.subscribe(sessionId)
+                        .map(event -> {
+                            Map<String, Object> data = new LinkedHashMap<>();
+                            data.put("type", "tool_call");
+                            data.put("toolName", event.toolName());
+                            if (event.data() != null) {
+                                data.put("toolInput", toJson(event.data()));
+                            }
+                            return sse("tool_call", data);
+                        })
+        );
 
-        EXECUTOR.execute(() -> {
+        // 2. Agent 执行流 — 文本 delta + 工具结果
+        //    streamEvents() 是阻塞迭代，放到 boundedElastic 调度器避免阻塞事件循环
+        Flux<ServerSentEvent<String>> agentEvents = Flux.<ServerSentEvent<String>>create(sink -> {
             try {
                 ReActAgent agent = buildAgent(sessionId);
                 Msg userMsg = new UserMessage(message);
-
-                agent.streamEvents(userMsg)
-                        .toIterable()
-                        .forEach(event -> {
-                            try {
-                                if (event instanceof TextBlockDeltaEvent e) {
-                                    emitter.send(sse("token", Map.of(
-                                            "type", "token",
-                                            "data", e.getDelta())));
-                                } else if (event instanceof ToolCallStartEvent e) {
-                                    emitter.send(sse("tool_call", Map.of(
-                                            "type", "tool_call",
-                                            "tool", e.getToolCallName())));
-                                } else if (event instanceof ToolResultEndEvent e) {
-                                    emitter.send(sse("tool_result", Map.of(
-                                            "type", "tool_result",
-                                            "tool", e.getToolCallName(),
-                                            "state", e.getState().name())));
-                                }
-                            } catch (Exception ex) {
-                                log.warn("SSE send error: {}", ex.getMessage());
-                            }
-                        });
-
-                emitter.send(sse("done", Map.of("type", "done")));
-                emitter.complete();
+                for (AgentEvent event : agent.streamEvents(userMsg).toIterable()) {
+                    if (event instanceof TextBlockDeltaEvent e) {
+                        sink.next(sse("token", Map.of("type", "token", "data", e.getDelta())));
+                    } else if (event instanceof ToolResultEndEvent e) {
+                        sink.next(sse("tool_result", Map.of(
+                                "type", "tool_result",
+                                "tool", e.getToolCallName(),
+                                "state", e.getState().name())));
+                    }
+                }
+                sink.next(sse("done", Map.of("type", "done")));
+                sink.complete();
             } catch (Exception e) {
-                log.error("Stream chat error", e);
-                emitter.completeWithError(e);
+                sink.error(e);
             }
-        });
+        }).subscribeOn(Schedulers.boundedElastic());
 
-        return emitter;
+        // 3. 合并两路流 — Agent 完成时 toolEvents 也自动结束
+        return Flux.merge(
+                toolEvents.takeUntilOther(agentEvents.then()),
+                agentEvents
+        );
     }
 
     /**
@@ -148,13 +168,13 @@ public class BabiAgentController {
      * @return agent's full reply text
      */
     @GetMapping("/send")
-    public String sendChat(
+    public Mono<String> sendChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
         ReActAgent agent = buildAgent(sessionId);
         Msg userMsg = new UserMessage(message);
-        Msg reply = agent.call(userMsg).block();
-        return reply.getTextContent() != null ? reply.getTextContent() : "";
+        return agent.call(userMsg)
+                .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "");
     }
 
     /**
@@ -164,11 +184,11 @@ public class BabiAgentController {
      * @return result message
      */
     @DeleteMapping("/session")
-    public Map<String, String> deleteSession(
+    public Mono<Map<String, String>> deleteSession(
             @RequestParam String sessionId) {
         stateStore.delete(null, sessionId);
         log.info("Session deleted: {}", sessionId);
-        return Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted");
+        return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted"));
     }
 
     private ReActAgent buildAgent(String sessionId) {
@@ -193,17 +213,22 @@ public class BabiAgentController {
                 .defaultSessionId(sessionId)
                 .maxIters(20)
                 .middleware(new ContextTruncateMiddleware(30))
+                .middleware(new ToolNotificationMiddleware(toolEventBus))
                 .build();
     }
 
-    private static SseEmitter.SseEventBuilder sse(String eventType, Object data) {
-        String json;
-        try {
-            json = MAPPER.writeValueAsString(data);
-        } catch (Exception e) {
-            json = "{\"type\":\"" + eventType + "\"}";
-        }
-        return SseEmitter.event().name(eventType).data(json);
+    private static ServerSentEvent<String> sse(String eventType, Object data) {
+        return ServerSentEvent.<String>builder()
+                .event(eventType)
+                .data(toJson(data))
+                .build();
     }
 
+    private static String toJson(Object obj) {
+        try {
+            return MAPPER.writeValueAsString(obj);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
 }
