@@ -5,6 +5,10 @@ spring:
   application:
     name: babi-agent
 
+babi:
+  agent:
+    workspace: ~/babi-workspace
+
 agentscope:
   model:
     provider: dashscope

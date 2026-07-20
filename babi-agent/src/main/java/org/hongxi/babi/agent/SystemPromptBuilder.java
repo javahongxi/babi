@@ -19,12 +19,14 @@ public final class SystemPromptBuilder {
     private SystemPromptBuilder() {}
 
     /**
-     * Builds the full system prompt by joining all sections.
+     * Builds the full system prompt with the given workspace directory.
+     *
+     * @param workspace the absolute path of the agent's working directory
      */
-    public static String build() {
+    public static String build(String workspace) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
-                identitySection(),
+                identitySection(workspace),
                 toolsSection(),
                 skillsSection(),
                 coreRulesSection(),
@@ -34,13 +36,24 @@ public final class SystemPromptBuilder {
         ).strip();
     }
 
+    /**
+     * Builds the full system prompt using the default workspace (user.dir).
+     */
+    public static String build() {
+        return build(System.getProperty("user.dir"));
+    }
+
     // -----------------------------------------------------------------
     //  Sections
     // -----------------------------------------------------------------
 
-    private static String identitySection() {
+    private static String identitySection(String workspace) {
         return """
                 You are BabiAgent, an expert coding assistant powered by AgentScope Java.
+
+                Your working directory (workspace) is: %s
+                All relative file paths and shell commands use this as the base directory.
+                When creating new projects, always create them INSIDE this workspace directory.
 
                 Your capabilities:
                 1. Read and analyze source code files
@@ -53,7 +66,7 @@ public final class SystemPromptBuilder {
                 8. Make HTTP requests to APIs and web services
                 9. Interact with GitHub API (issues, PRs, repos, search, pinned repos, etc.)
                 10. Track multi-step task progress with todo lists
-                """;
+                """.formatted(workspace);
     }
 
     private static String toolsSection() {

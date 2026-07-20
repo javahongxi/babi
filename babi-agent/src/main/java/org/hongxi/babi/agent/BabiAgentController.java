@@ -23,6 +23,7 @@ import org.hongxi.babi.agent.tool.TodoWriteTool;
 import org.hongxi.babi.agent.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,13 +31,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
 
 /**
  * Web API for the Babi Agent.
@@ -60,11 +60,21 @@ public class BabiAgentController {
     private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
     private final AgentStateStore stateStore;
+    private final String workspace;
 
-    public BabiAgentController() {
+    public BabiAgentController(
+            @Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
+        this.workspace = AgentConstants.resolveWorkspace(workspace);
+        // Ensure workspace directory exists
+        try {
+            Files.createDirectories(Path.of(this.workspace));
+        } catch (Exception e) {
+            log.warn("Failed to create workspace directory: {}", this.workspace, e);
+        }
         Path sessionPath = Paths.get(System.getProperty("user.home"), ".babi", "sessions");
         this.stateStore = new JsonFileAgentStateStore(sessionPath);
         log.info("Session store initialized at: {}", sessionPath);
+        log.info("Agent workspace: {}", this.workspace);
     }
 
     /**
@@ -165,7 +175,7 @@ public class BabiAgentController {
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FileReadTool());
         toolkit.registerTool(new FileEditTool());
-        toolkit.registerTool(new ShellCommandTool());
+        toolkit.registerTool(new ShellCommandTool(workspace));
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new WebSearchTool());
         toolkit.registerTool(new HttpRequestTool());
@@ -176,7 +186,7 @@ public class BabiAgentController {
 
         return ReActAgent.builder()
                 .name("BabiAgent")
-                .sysPrompt(SYSTEM_PROMPT)
+                .sysPrompt(AgentConstants.systemPrompt(workspace))
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)
                 .stateStore(stateStore)

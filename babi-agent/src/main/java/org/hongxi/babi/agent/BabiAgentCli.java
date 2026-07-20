@@ -19,8 +19,8 @@ import org.hongxi.babi.agent.tool.WebSearchTool;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-
-import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * CLI entry point for the Babi Agent.
@@ -31,6 +31,7 @@ import static org.hongxi.babi.agent.AgentConstants.SYSTEM_PROMPT;
  * <pre>
  *   export DASHSCOPE_API_KEY=your_key
  *   mvn exec:java -pl babi-agent
+ *   mvn exec:java -pl babi-agent -Dexec.args="--workspace ~/my-project"
  * </pre>
  */
 public class BabiAgentCli {
@@ -44,9 +45,21 @@ public class BabiAgentCli {
             System.exit(1);
         }
 
+        // Parse --workspace argument
+        String workspace = AgentConstants.DEFAULT_WORKSPACE;
+        for (int i = 0; i < args.length; i++) {
+            if ("--workspace".equals(args[i]) && i + 1 < args.length) {
+                workspace = AgentConstants.resolveWorkspace(args[i + 1]);
+                break;
+            }
+        }
+        // Ensure workspace directory exists
+        Files.createDirectories(Path.of(workspace));
+
         System.out.println("\n" + "=".repeat(60));
         System.out.println("Babi Agent - Powered by AgentScope Java");
         System.out.println("=".repeat(60));
+        System.out.println("Workspace: " + workspace);
         System.out.println("An AI coding assistant with file reading and shell tools.");
         System.out.println("Type 'exit' to quit.\n");
 
@@ -54,7 +67,7 @@ public class BabiAgentCli {
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FileReadTool());
         toolkit.registerTool(new FileEditTool());
-        toolkit.registerTool(new ShellCommandTool());
+        toolkit.registerTool(new ShellCommandTool(workspace));
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new WebSearchTool());
         toolkit.registerTool(new HttpRequestTool());
@@ -65,7 +78,7 @@ public class BabiAgentCli {
 
         ReActAgent agent = ReActAgent.builder()
                 .name("BabiAgent")
-                .sysPrompt(SYSTEM_PROMPT)
+                .sysPrompt(AgentConstants.systemPrompt(workspace))
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)
                 .maxIters(20)
