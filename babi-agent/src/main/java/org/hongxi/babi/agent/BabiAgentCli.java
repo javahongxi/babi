@@ -77,9 +77,9 @@ public class BabiAgentCli {
         toolkit.registerTool(new SkillTool());
 
         ReActAgent agent = ReActAgent.builder()
-                .name("BabiAgent")
+                .name(AgentConstants.AGENT_NAME)
                 .sysPrompt(AgentConstants.systemPrompt(workspace))
-                .model("dashscope:qwen-plus")
+                .model(AgentConstants.MODEL)
                 .toolkit(toolkit)
                 .maxIters(20)
                 .middleware(new ContextTruncateMiddleware(30))

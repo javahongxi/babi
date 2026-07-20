@@ -209,9 +209,9 @@ public class BabiAgentController {
         String sysPrompt = SystemPromptBuilder.build(workspace, skillTool.getSkills().values());
 
         return ReActAgent.builder()
-                .name("BabiAgent")
+                .name(AgentConstants.AGENT_NAME)
                 .sysPrompt(sysPrompt)
-                .model("dashscope:qwen-plus")
+                .model(AgentConstants.MODEL)
                 .toolkit(toolkit)
                 .stateStore(stateStore)
                 .defaultSessionId(sessionId)

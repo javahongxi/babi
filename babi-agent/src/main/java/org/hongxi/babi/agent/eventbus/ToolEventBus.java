@@ -3,6 +3,8 @@ package org.hongxi.babi.agent.eventbus;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
+import java.util.Map;
+
 /**
  * 工具事件总线 - 基于 Reactor Sinks 的发布/订阅机制
  *
@@ -50,7 +52,7 @@ public class ToolEventBus {
             String sessionId,
             String eventType,
             String toolName,
-            java.util.Map<String, Object> data) {
+            Map<String, Object> data) {
 
         /**
          * 创建工具调用事件
@@ -58,7 +60,7 @@ public class ToolEventBus {
         public static ToolEvent toolCall(
                 String sessionId,
                 String toolName,
-                java.util.Map<String, Object> input) {
+                Map<String, Object> input) {
             return new ToolEvent(sessionId, "TOOL_CALL", toolName, input);
         }
     }

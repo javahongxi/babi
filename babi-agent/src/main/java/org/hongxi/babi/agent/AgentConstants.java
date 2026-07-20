@@ -9,6 +9,10 @@ public final class AgentConstants {
 
     private AgentConstants() {}
 
+    public static final String AGENT_NAME = "BabiAgent";
+
+    public static final String MODEL = "dashscope:qwen-plus";
+
     /** Default workspace directory when none is configured. */
     public static final String DEFAULT_WORKSPACE =
             Path.of(System.getProperty("user.home"), "babi-workspace").toString();

@@ -5,6 +5,7 @@ import io.agentscope.core.tool.ToolParam;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,7 +56,7 @@ public class CodeSearchTool {
     }
 
     private String searchWithRipgrep(String pattern, String directory, String filePattern, int maxResults) throws Exception {
-        var cmd = new java.util.ArrayList<String>();
+        var cmd = new ArrayList<String>();
         cmd.add("rg");
         cmd.add("--no-heading");
         cmd.add("--line-number");
@@ -72,7 +73,7 @@ public class CodeSearchTool {
     }
 
     private String searchWithGrep(String pattern, String directory, String filePattern, int maxResults) throws Exception {
-        var cmd = new java.util.ArrayList<String>();
+        var cmd = new ArrayList<String>();
         cmd.add("grep");
         cmd.add("-rn");
         cmd.add("--max-count");
@@ -87,7 +88,7 @@ public class CodeSearchTool {
         return executeSearch(cmd, maxResults);
     }
 
-    private String executeSearch(java.util.ArrayList<String> cmd, int maxResults) throws Exception {
+    private String executeSearch(ArrayList<String> cmd, int maxResults) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process process = pb.start();

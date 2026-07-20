@@ -2,10 +2,9 @@ package org.hongxi.babi.agent.middleware;
 
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.message.ToolResultBlock;
-import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.middleware.ReasoningInput;
 import org.slf4j.Logger;
@@ -14,9 +13,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Middleware that truncates the conversation context before sending to the LLM,
@@ -50,11 +47,11 @@ public class ContextTruncateMiddleware implements MiddlewareBase {
     }
 
     @Override
-    public Flux<io.agentscope.core.event.AgentEvent> onReasoning(
+    public Flux<AgentEvent> onReasoning(
             Agent agent,
             RuntimeContext ctx,
             ReasoningInput input,
-            Function<ReasoningInput, Flux<io.agentscope.core.event.AgentEvent>> next) {
+            Function<ReasoningInput, Flux<AgentEvent>> next) {
 
         List<Msg> messages = input.messages();
         if (messages.size() <= maxMessages) {

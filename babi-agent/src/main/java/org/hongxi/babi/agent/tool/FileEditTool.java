@@ -5,6 +5,8 @@ import io.agentscope.core.tool.ToolParam;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Tool for editing files via exact string replacement.
@@ -36,13 +38,13 @@ public class FileEditTool {
 
             // Replace only the first occurrence
             String updated = content.replaceFirst(
-                    java.util.regex.Pattern.quote(oldText),
-                    java.util.regex.Matcher.quoteReplacement(newText));
+                    Pattern.quote(oldText),
+                    Matcher.quoteReplacement(newText));
 
             Files.writeString(path, updated);
 
             // Count remaining occurrences for user awareness
-            long remaining = content.split(java.util.regex.Pattern.quote(oldText), -1).length - 1;
+            long remaining = content.split(Pattern.quote(oldText), -1).length - 1;
             if (remaining > 1) {
                 return "Successfully replaced 1 occurrence. Note: " + (remaining - 1) + " more occurrence(s) of old_text remain in the file.";
             }

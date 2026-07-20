@@ -9,6 +9,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /**
  * Tool for web search using the Tavily API.
  *
@@ -77,14 +80,14 @@ public class WebSearchTool {
 
     private String formatResults(String json) {
         try {
-            com.fasterxml.jackson.databind.JsonNode root =
-                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
-            com.fasterxml.jackson.databind.JsonNode results = root.path("results");
+            JsonNode root =
+                    new ObjectMapper().readTree(json);
+            JsonNode results = root.path("results");
             if (!results.isArray() || results.isEmpty()) {
                 return "No results found.";
             }
             StringBuilder sb = new StringBuilder();
-            for (com.fasterxml.jackson.databind.JsonNode r : results) {
+            for (JsonNode r : results) {
                 sb.append("## ").append(r.path("title").asText("(no title)")).append("\n");
                 sb.append("URL: ").append(r.path("url").asText()).append("\n");
                 sb.append(r.path("content").asText("")).append("\n\n");

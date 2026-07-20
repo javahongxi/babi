@@ -26,7 +26,7 @@ public final class SystemPromptBuilder {
      * Builds the full system prompt with the given workspace directory and loaded skills.
      *
      * @param workspace the absolute path of the agent's working directory
-     * @param skills    the collection of loaded skills (may be empty)
+     * @param skills    the collection of loaded skills (maybe empty)
      */
     public static String build(String workspace, Collection<Skill> skills) {
         String custom = loadCustomInstructions();

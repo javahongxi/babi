@@ -46,7 +46,7 @@ public class ToolNotificationMiddleware implements MiddlewareBase {
             ActingInput input,
             Function<ActingInput, Flux<AgentEvent>> next) {
 
-        String sessionId = resolveSessionId(agent, ctx);
+        String sessionId = resolveSessionId(ctx);
 
         if (sessionId != null && input.toolCalls() != null) {
             for (ToolUseBlock tu : input.toolCalls()) {
@@ -66,7 +66,7 @@ public class ToolNotificationMiddleware implements MiddlewareBase {
         return next.apply(input);
     }
 
-    private static String resolveSessionId(Agent agent, RuntimeContext ctx) {
+    private static String resolveSessionId(RuntimeContext ctx) {
         if (ctx == null) return null;
         if (ctx.getSessionId() != null) {
             return ctx.getSessionId();

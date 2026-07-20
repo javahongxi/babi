@@ -6,13 +6,16 @@ import io.agentscope.core.tool.ToolParam;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -228,8 +231,8 @@ public class GitHubApiTool {
             if (user == null) return null;
             Map<String, Object> pinned = (Map<String, Object>) user.get("pinnedItems");
             if (pinned == null) return null;
-            java.util.List<Map<String, Object>> nodes =
-                    (java.util.List<Map<String, Object>>) pinned.get("nodes");
+            List<Map<String, Object>> nodes =
+                    (List<Map<String, Object>>) pinned.get("nodes");
             if (nodes == null) return null;
             return doFormatPinnedRepos(nodes, null);
         } catch (Exception e) {
@@ -275,8 +278,8 @@ public class GitHubApiTool {
             if (user == null) return null;
             Map<String, Object> pinned = (Map<String, Object>) user.get("pinnedItems");
             if (pinned == null) return null;
-            java.util.List<Map<String, Object>> nodes =
-                    (java.util.List<Map<String, Object>>) pinned.get("nodes");
+            List<Map<String, Object>> nodes =
+                    (List<Map<String, Object>>) pinned.get("nodes");
             if (nodes == null) return null;
             return doFormatPinnedRepos(nodes, username);
         } catch (Exception e) {
@@ -288,7 +291,7 @@ public class GitHubApiTool {
     /**
      * Shared formatter: takes repo nodes and optional username, returns Markdown.
      */
-    private String doFormatPinnedRepos(java.util.List<Map<String, Object>> nodes, String username) {
+    private String doFormatPinnedRepos(List<Map<String, Object>> nodes, String username) {
         if (nodes == null || nodes.isEmpty()) {
             return (username != null ? "**@" + username + "** " : "") + "目前没有置顶任何仓库。";
         }
@@ -326,8 +329,8 @@ public class GitHubApiTool {
 
     private static String urlEncode(String s) {
         try {
-            return java.net.URLEncoder.encode(
-                    Objects.requireNonNullElse(s, ""), java.nio.charset.StandardCharsets.UTF_8);
+            return URLEncoder.encode(
+                    Objects.requireNonNullElse(s, ""), StandardCharsets.UTF_8);
         } catch (Exception e) {
             return s;
         }
