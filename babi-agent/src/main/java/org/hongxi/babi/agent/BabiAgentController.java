@@ -202,11 +202,15 @@ public class BabiAgentController {
         toolkit.registerTool(new GitHubApiTool());
         toolkit.registerTool(new CodeSearchTool());
         toolkit.registerTool(new TodoWriteTool());
-        toolkit.registerTool(new SkillTool());
+        SkillTool skillTool = new SkillTool();
+        toolkit.registerTool(skillTool);
+
+        // Inject loaded skills into system prompt so the agent knows what's available
+        String sysPrompt = SystemPromptBuilder.build(workspace, skillTool.getSkills().values());
 
         return ReActAgent.builder()
                 .name("BabiAgent")
-                .sysPrompt(AgentConstants.systemPrompt(workspace))
+                .sysPrompt(sysPrompt)
                 .model("dashscope:qwen-plus")
                 .toolkit(toolkit)
                 .stateStore(stateStore)

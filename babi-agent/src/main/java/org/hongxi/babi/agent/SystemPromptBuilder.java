@@ -1,7 +1,11 @@
 package org.hongxi.babi.agent;
 
+import org.hongxi.babi.agent.skill.SkillLoader.Skill;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Modular system prompt builder for BabiAgent.
@@ -19,21 +23,31 @@ public final class SystemPromptBuilder {
     private SystemPromptBuilder() {}
 
     /**
-     * Builds the full system prompt with the given workspace directory.
+     * Builds the full system prompt with the given workspace directory and loaded skills.
      *
      * @param workspace the absolute path of the agent's working directory
+     * @param skills    the collection of loaded skills (may be empty)
      */
-    public static String build(String workspace) {
+    public static String build(String workspace, Collection<Skill> skills) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
                 identitySection(workspace),
                 toolsSection(),
-                skillsSection(),
+                skillsSection(skills),
                 coreRulesSection(),
                 githubSection(),
                 guidelinesSection(),
                 custom
         ).strip();
+    }
+
+    /**
+     * Builds the full system prompt with the given workspace directory (no skills injected).
+     *
+     * @param workspace the absolute path of the agent's working directory
+     */
+    public static String build(String workspace) {
+        return build(workspace, Collections.emptyList());
     }
 
     /**
@@ -87,22 +101,30 @@ public final class SystemPromptBuilder {
                 """;
     }
 
-    private static String skillsSection() {
-        return """
+    private static String skillsSection(Collection<Skill> skills) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
                 SKILLS SYSTEM:
                 Skills are reusable workflow instructions stored as Markdown files.
                 They are loaded from two directories:
                 - ~/.agents/skills/ — global shared skills (cross-project reuse)
                 - ~/.babi/skills/   — Babi-specific skills (higher priority, overrides global)
 
-                When the user asks you to perform a task that might match a skill:
-                1. Call list_skills to see what's available
-                2. Call use_skill(skill_name) to get the full instructions
-                3. Follow the instructions to complete the task
+                IMPORTANT: When the user's request matches ANY of the skills below, you MUST
+                call use_skill(skill_name) FIRST to load the full instructions, then follow them.
+                Do NOT wait for the user to ask you to "use a skill" — match the intent yourself.
+                """);
 
-                You can also proactively suggest skills when the user's request aligns
-                with an available skill's purpose.
-                """;
+        if (skills != null && !skills.isEmpty()) {
+            sb.append("\nCurrently loaded skills (").append(skills.size()).append("):\n");
+            for (Skill skill : skills) {
+                sb.append("- ").append(skill.name()).append(": ").append(skill.description()).append("\n");
+            }
+            sb.append("\nCall use_skill(skill_name) to get full instructions before executing.");
+        } else {
+            sb.append("\nNo skills currently installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
+        }
+        return sb.toString();
     }
 
     private static String coreRulesSection() {

@@ -27,6 +27,13 @@ public class SkillTool {
         this.skills = SkillLoader.loadAll();
     }
 
+    /**
+     * Returns the loaded skills map (unmodifiable).
+     */
+    public Map<String, Skill> getSkills() {
+        return skills;
+    }
+
     @Tool(name = "list_skills", description = "List all available skills. Returns skill names and descriptions. Call this before use_skill to discover what skills are available.", readOnly = true)
     public String listSkills() {
         if (skills.isEmpty()) {
