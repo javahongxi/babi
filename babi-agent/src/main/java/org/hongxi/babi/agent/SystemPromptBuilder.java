@@ -202,6 +202,11 @@ public final class SystemPromptBuilder {
                   This tool has automatic token injection (from GITHUB_TOKEN or GH_TOKEN env var).
                   If the env var is set, the tool works — period. Do not question it.
                 - If a task is unclear, ask for clarification before proceeding
+                - IMAGE OUTPUT: The web frontend supports inline image rendering. When you
+                  generate or obtain an image URL (from skills like image generation, or any
+                  tool that returns image URLs), you MUST use Markdown image syntax
+                  ![description](image_url) so the image is displayed directly in the chat.
+                  Do NOT output bare URLs — always wrap them in Markdown image syntax.
                 """;
     }
 

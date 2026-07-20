@@ -44,7 +44,12 @@
         .md-content a { color: #1a73e8; text-decoration: none; }
         .md-content a:hover { text-decoration: underline; }
         .md-content hr { border: none; border-top: 1px solid #e0e0e0; margin: 16px 0; }
-        .md-content img { max-width: 100%; border-radius: 4px; }
+        .md-content img { max-width: 100%; border-radius: 4px; cursor: zoom-in; transition: opacity 0.2s; }
+        .md-content img:hover { opacity: 0.85; }
+        /* Image lightbox */
+        .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; cursor: zoom-out; justify-content: center; align-items: center; }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 4px 32px rgba(0,0,0,0.5); }
         .msg .tool-event { background: #f0f4ff; border-left: 3px solid #1a73e8; padding: 6px 10px; margin: 6px 0; font-size: 13px; color: #555; border-radius: 4px; }
         .msg .tool-event.success { border-left-color: #34a853; }
         .msg .tool-event.error { border-left-color: #ea4335; }
@@ -182,15 +187,85 @@
                     return;
                 }
                 el.innerHTML = '<div class="md-content">' + marked.parse(text) + '</div>';
+                // Auto-embed image URLs that are not already in <img> tags
+                embedImageUrls(el);
                 // Apply syntax highlighting to code blocks
                 if (typeof hljs !== 'undefined') {
                     el.querySelectorAll('pre code').forEach(function(block) {
                         hljs.highlightElement(block);
                     });
                 }
+                // Bind lightbox click on images
+                el.querySelectorAll('.md-content img').forEach(function(img) {
+                    img.addEventListener('click', function() { openLightbox(this.src); });
+                });
             } else {
                 el.textContent = text;
             }
+        }
+
+        /**
+         * Detects bare image URLs in text nodes and wraps them in <img> tags.
+         * Matches http(s) URLs ending with image extensions that are NOT already inside <a> or <img>.
+         */
+        function embedImageUrls(el) {
+            const imgExt = /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?[^\s]*)?$/i;
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+            const textNodes = [];
+            while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+            textNodes.forEach(function(node) {
+                // Skip if parent is <a> or <img>
+                if (node.parentElement && (node.parentElement.tagName === 'A' || node.parentElement.tagName === 'IMG')) return;
+                const urlRegex = /(https?:\/\/[^\s<]+)/g;
+                let match;
+                let hasImage = false;
+                while ((match = urlRegex.exec(node.textContent)) !== null) {
+                    if (imgExt.test(match[1])) { hasImage = true; break; }
+                }
+                if (!hasImage) return;
+
+                // Replace image URLs with <img> tags
+                const frag = document.createDocumentFragment();
+                let lastIdx = 0;
+                urlRegex.lastIndex = 0;
+                while ((match = urlRegex.exec(node.textContent)) !== null) {
+                    const url = match[1];
+                    if (!imgExt.test(url)) continue;
+                    // Text before the URL
+                    if (match.index > lastIdx) {
+                        frag.appendChild(document.createTextNode(node.textContent.slice(lastIdx, match.index)));
+                    }
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    img.style.margin = '8px 0';
+                    img.style.cursor = 'zoom-in';
+                    img.addEventListener('click', function() { openLightbox(url); });
+                    frag.appendChild(img);
+                    lastIdx = match.index + url.length;
+                }
+                if (lastIdx < node.textContent.length) {
+                    frag.appendChild(document.createTextNode(node.textContent.slice(lastIdx)));
+                }
+                node.parentNode.replaceChild(frag, node);
+            });
+        }
+
+        // Lightbox for image preview
+        function openLightbox(src) {
+            let lb = document.getElementById('lightbox');
+            if (!lb) {
+                lb = document.createElement('div');
+                lb.id = 'lightbox';
+                lb.className = 'lightbox';
+                lb.innerHTML = '<img src="" alt="preview">';
+                lb.addEventListener('click', function() { lb.classList.remove('active'); });
+                document.body.appendChild(lb);
+            }
+            lb.querySelector('img').src = src;
+            lb.classList.add('active');
         }
 
         // Language colors
