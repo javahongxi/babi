@@ -105,6 +105,21 @@ public final class SkillLoader {
     }
 
     /**
+     * Returns the directory containing a skill's resources (scripts, references, etc.).
+     * For directory-based skills ({@code dir/my-skill/SKILL.md}), this is the skill directory.
+     * For flat-file skills ({@code dir/my-skill.md}), this is {@code null}.
+     */
+    static Path skillDirectory(Path skillFile) {
+        String fileName = skillFile.getFileName().toString();
+        // Directory-based: parent dir is the skill root (e.g. qianwen-image-generation/)
+        if ("SKILL.md".equalsIgnoreCase(fileName)) {
+            return skillFile.getParent().toAbsolutePath().normalize();
+        }
+        // Flat-file skill: no dedicated directory
+        return null;
+    }
+
+    /**
      * Parses a single skill Markdown file.
      *
      * <p>Expected format:
@@ -161,11 +176,18 @@ public final class SkillLoader {
             }
         }
 
-        return new Skill(name, description, body);
+        Path dir = skillDirectory(file);
+        return new Skill(name, description, body, dir);
     }
 
     /**
      * Represents a single loaded Skill.
+     *
+     * @param name        skill name
+     * @param description short description
+     * @param body        full Markdown instructions (front-matter stripped)
+     * @param directory   absolute path to the skill's root directory (where SKILL.md lives),
+     *                    or {@code null} for flat-file skills
      */
-    public record Skill(String name, String description, String body) {}
+    public record Skill(String name, String description, String body, Path directory) {}
 }

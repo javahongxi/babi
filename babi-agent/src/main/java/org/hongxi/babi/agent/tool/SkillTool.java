@@ -63,6 +63,12 @@ public class SkillTool {
                     + ". Use list_skills to see all available skills.";
         }
 
-        return "## Skill: " + skill.name() + "\n\n" + skill.body();
+        String dirInfo = skill.directory() != null
+                ? "\n\n**Skill directory**: `" + skill.directory() + "`\n"
+                  + "All relative paths in the instructions above (e.g. `scripts/...`, `references/...`) "
+                  + "are relative to this directory. Use absolute paths when executing commands."
+                : "";
+
+        return "## Skill: " + skill.name() + "\n\n" + skill.body() + dirInfo;
     }
 }
