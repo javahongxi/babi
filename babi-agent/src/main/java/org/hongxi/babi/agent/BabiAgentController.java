@@ -134,6 +134,8 @@ public class BabiAgentController {
                 .enableTaskList()
                 .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
                 .disableMemoryTools()          // Not needed for now
+                .disableCompaction()           // We have our own ContextTruncateMiddleware
+                .disableToolResultEviction()   // Not needed — keep tool results in context
                 .middleware(new ContextTruncateMiddleware(30))
                 .middleware(new ToolNotificationMiddleware(toolEventBus))
                 .build();

@@ -90,6 +90,8 @@ public class BabiAgentCli {
                 .enableTaskList()
                 .disableDynamicSkills()
                 .disableMemoryTools()
+                .disableCompaction()           // We have our own ContextTruncateMiddleware
+                .disableToolResultEviction()   // Not needed — keep tool results in context
                 .middleware(new ContextTruncateMiddleware(30))
                 .build();
 
