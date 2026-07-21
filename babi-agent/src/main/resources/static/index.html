@@ -173,7 +173,7 @@
         <button onclick="clearChat()" style="background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#666;">清空对话</button>
     </div></div>
     <div class="main-content">
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
                 <span>📁 工作区</span>
                 <span style="display:flex;gap:4px;">
@@ -200,7 +200,7 @@
             </div>
         </div>
     </div>
-    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="展开侧边栏">☰</button>
+    <button class="sidebar-toggle visible" id="sidebar-toggle" onclick="toggleSidebar()" title="展开侧边栏">☰</button>
 
     <script>
         const chatInner = document.getElementById('chat-inner');
