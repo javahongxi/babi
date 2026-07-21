@@ -16,11 +16,6 @@
     <dependencies>
         <dependency>
             <groupId>io.agentscope</groupId>
-            <artifactId>agentscope-core</artifactId>
-            <version>${agentscope.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.agentscope</groupId>
             <artifactId>agentscope-harness</artifactId>
             <version>${agentscope.version}</version>
         </dependency>
