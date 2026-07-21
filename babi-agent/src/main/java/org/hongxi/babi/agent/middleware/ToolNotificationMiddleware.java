@@ -54,11 +54,12 @@ public class ToolNotificationMiddleware implements MiddlewareBase {
                 if (tu.getInput() != null) {
                     inputData.putAll(tu.getInput());
                 }
+                String toolName = tu.getName() != null ? tu.getName() : "unknown";
                 try {
-                    bus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, tu.getName(), inputData));
-                    log.debug("Published TOOL_CALL event: session={}, tool={}", sessionId, tu.getName());
+                    bus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, inputData));
+                    log.debug("Published TOOL_CALL event: session={}, tool={}", sessionId, toolName);
                 } catch (Exception e) {
-                    log.debug("Failed to publish tool event for {}: {}", tu.getName(), e.getMessage());
+                    log.debug("Failed to publish tool event for {}: {}", toolName, e.getMessage());
                 }
             }
         }

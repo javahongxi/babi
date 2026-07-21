@@ -1,7 +1,7 @@
 package org.hongxi.babi.agent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
@@ -10,16 +10,14 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
-import org.hongxi.babi.agent.tool.CodeSearchTool;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
-import org.hongxi.babi.agent.tool.FileEditTool;
-import org.hongxi.babi.agent.tool.FileReadTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
-import org.hongxi.babi.agent.tool.ShellCommandTool;
 import org.hongxi.babi.agent.tool.SkillTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,23 +32,36 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Web API for the Babi Agent (WebFlux).
  *
- * <p>Provides both SSE streaming and synchronous chat endpoints.
- * Each request creates a new {@link ReActAgent} instance (ReActAgent is NOT thread-safe),
- * sharing the same {@link AgentStateStore} for session persistence.
+ * <p>Uses {@link HarnessAgent} (thread-safe singleton) instead of raw ReActAgent.
+ * Each request creates a new {@link RuntimeContext} for session isolation.
  *
- * <p>The SSE streaming endpoint uses {@code Flux.merge()} to combine two event sources:
+ * <p>HarnessAgent provides built-in tools:
  * <ul>
- *   <li>Tool call events from {@link ToolEventBus} (published by {@link ToolNotificationMiddleware})</li>
- *   <li>Text token events from {@code agent.streamEvents()}</li>
+ *   <li>{@code read_file} / {@code write_file} / {@code edit_file} / {@code grep_files} — filesystem operations</li>
+ *   <li>{@code execute} — shell command execution</li>
+ *   <li>Memory tools (memory_save / memory_search / memory_get)</li>
+ *   <li>Workspace context injection (AGENTS.md, MEMORY.md, KNOWLEDGE.md)</li>
+ *   <li>Context compaction and tool result eviction</li>
+ * </ul>
+ *
+ * <p>Custom babi tools registered on top:
+ * <ul>
+ *   <li>{@code fetch_url} — web page fetching</li>
+ *   <li>{@code http_request} — HTTP API calls</li>
+ *   <li>{@code github_api_request} — GitHub REST API</li>
+ *   <li>{@code list_skills} / {@code use_skill} — babi skill system</li>
  * </ul>
  *
  * <p>Endpoints:
@@ -66,25 +77,66 @@ public class BabiAgentController {
     private static final Logger log = LoggerFactory.getLogger(BabiAgentController.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final HarnessAgent agent;
     private final AgentStateStore stateStore;
-    private final String workspace;
     private final ToolEventBus toolEventBus;
 
     public BabiAgentController(
             @Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        this.workspace = AgentConstants.resolveWorkspace(workspace);
+        String resolvedWorkspace = AgentConstants.resolveWorkspace(workspace);
+        Path workspacePath = Path.of(resolvedWorkspace);
+
         // Ensure workspace directory exists
         try {
-            Files.createDirectories(Path.of(this.workspace));
+            Files.createDirectories(workspacePath);
         } catch (Exception e) {
-            log.warn("Failed to create workspace directory: {}", this.workspace, e);
+            log.warn("Failed to create workspace directory: {}", resolvedWorkspace, e);
         }
+
+        // Initialize AGENTS.md in workspace if not present (Harness workspace context)
+        initWorkspaceAgentsMd(workspacePath);
+
+        // Session store
         Path sessionPath = Paths.get(System.getProperty("user.home"), ".babi", "sessions");
         this.stateStore = new JsonFileAgentStateStore(sessionPath);
         log.info("Session store initialized at: {}", sessionPath);
-        log.info("Agent workspace: {}", this.workspace);
+        log.info("Agent workspace: {}", resolvedWorkspace);
+
+        // Tool event bus for frontend notifications
         this.toolEventBus = new ToolEventBus();
         log.info("ToolEventBus initialized");
+
+        // Build HarnessAgent singleton (thread-safe, reusable across sessions)
+        this.agent = buildHarnessAgent(workspacePath);
+    }
+
+    private HarnessAgent buildHarnessAgent(Path workspacePath) {
+        // Register babi-specific custom tools (HarnessAgent provides read_file/edit_file/execute/grep natively)
+        Toolkit toolkit = new Toolkit();
+        toolkit.registerTool(new FetchUrlTool());
+        toolkit.registerTool(new HttpRequestTool());
+        toolkit.registerTool(new GitHubApiTool());
+        SkillTool skillTool = new SkillTool();
+        toolkit.registerTool(skillTool);
+
+        // Build system prompt with skills info (workspace context like AGENTS.md is auto-injected by Harness)
+        String sysPrompt = SystemPromptBuilder.build(skillTool.getSkills().values());
+
+        return HarnessAgent.builder()
+                .name(AgentConstants.AGENT_NAME)
+                .sysPrompt(sysPrompt)
+                .model(AgentConstants.createModel())
+                .toolkit(toolkit)
+                .workspace(workspacePath)
+                .filesystem(new LocalFilesystemSpec().project(workspacePath))
+                .stateStore(stateStore)
+                .maxIters(20)
+                .enableTaskList()
+                .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
+                .disableMemoryTools()          // Not needed for now
+                .middleware(new ContextTruncateMiddleware(30))
+                .middleware(new ToolNotificationMiddleware(toolEventBus))
+                .build();
     }
 
     /**
@@ -97,13 +149,6 @@ public class BabiAgentController {
      *   <li><b>agentEvents</b> — text deltas and tool results from {@code agent.streamEvents()}</li>
      * </ol>
      *
-     * <p>When the agent completes, both streams complete together via {@code Flux.merge()}.
-     *
-     * <p>Use curl to test:
-     * <pre>
-     * {@code curl -N -G "http://localhost:8900/api/chat/stream" --data-urlencode "message=帮我执行命令pwd"}
-     * </pre>
-     *
      * @param message   user message
      * @param sessionId session identifier (defaults to "default")
      * @return SSE event stream
@@ -113,14 +158,17 @@ public class BabiAgentController {
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId(sessionId)
+                .build();
+
         // 1. 工具事件流 — 由 ToolNotificationMiddleware 发布到 ToolEventBus
-        //    通过 takeUntilOther(agentFlux) 在 Agent 完成时自动结束
         Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
                 toolEventBus.subscribe(sessionId)
                         .map(event -> {
                             Map<String, Object> data = new LinkedHashMap<>();
                             data.put("type", "tool_call");
-                            data.put("toolName", event.toolName());
+                            data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
                             if (event.data() != null) {
                                 data.put("toolInput", toJson(event.data()));
                             }
@@ -129,12 +177,10 @@ public class BabiAgentController {
         );
 
         // 2. Agent 执行流 — 文本 delta + 工具结果
-        //    streamEvents() 是阻塞迭代，放到 boundedElastic 调度器避免阻塞事件循环
         Flux<ServerSentEvent<String>> agentEvents = Flux.<ServerSentEvent<String>>create(sink -> {
             try {
-                ReActAgent agent = buildAgent(sessionId);
                 Msg userMsg = new UserMessage(message);
-                for (AgentEvent event : agent.streamEvents(userMsg).toIterable()) {
+                for (AgentEvent event : agent.streamEvents(userMsg, ctx).toIterable()) {
                     if (event instanceof TextBlockDeltaEvent e) {
                         sink.next(sse("token", Map.of("type", "token", "data", e.getDelta())));
                     } else if (event instanceof ToolResultEndEvent e) {
@@ -169,9 +215,11 @@ public class BabiAgentController {
     public Mono<String> sendChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
-        ReActAgent agent = buildAgent(sessionId);
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId(sessionId)
+                .build();
         Msg userMsg = new UserMessage(message);
-        return agent.call(userMsg)
+        return agent.call(userMsg, ctx)
                 .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "");
     }
 
@@ -189,33 +237,43 @@ public class BabiAgentController {
         return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted"));
     }
 
-    private ReActAgent buildAgent(String sessionId) {
-        Toolkit toolkit = new Toolkit();
-        toolkit.registerTool(new FileReadTool());
-        toolkit.registerTool(new FileEditTool());
-        toolkit.registerTool(new ShellCommandTool(workspace));
-        toolkit.registerTool(new FetchUrlTool());
-        toolkit.registerTool(new HttpRequestTool());
-        toolkit.registerTool(new GitHubApiTool());
-        toolkit.registerTool(new CodeSearchTool());
-        SkillTool skillTool = new SkillTool();
-        toolkit.registerTool(skillTool);
-
-        // Inject loaded skills into system prompt so the agent knows what's available
-        String sysPrompt = SystemPromptBuilder.build(workspace, skillTool.getSkills().values());
-
-        return ReActAgent.builder()
-                .name(AgentConstants.AGENT_NAME)
-                .sysPrompt(sysPrompt)
-                .model(AgentConstants.createModel())
-                .toolkit(toolkit)
-                .stateStore(stateStore)
-                .defaultSessionId(sessionId)
-                .maxIters(20)
-                .enableTaskList()
-                .middleware(new ContextTruncateMiddleware(30))
-                .middleware(new ToolNotificationMiddleware(toolEventBus))
-                .build();
+    /**
+     * Initialize AGENTS.md in the workspace directory if it doesn't exist.
+     * Copies from classpath resource or creates a default one.
+     */
+    private void initWorkspaceAgentsMd(Path workspacePath) {
+        Path agentsMd = workspacePath.resolve("AGENTS.md");
+        if (Files.exists(agentsMd)) {
+            return;
+        }
+        try {
+            // Try loading from classpath resource
+            try (InputStream is = getClass().getResourceAsStream("/workspace/AGENTS.md")) {
+                if (is != null) {
+                    Files.copy(is, agentsMd, StandardCopyOption.REPLACE_EXISTING);
+                    log.info("Initialized AGENTS.md from classpath resource");
+                    return;
+                }
+            }
+            // Fallback: create a minimal AGENTS.md
+            String defaultContent = """
+                    # BabiAgent
+                    
+                    You are BabiAgent, an expert coding assistant powered by AgentScope Java.
+                    
+                    ## Rules
+                    
+                    - When the user provides a URL, ALWAYS call fetch_url FIRST before responding
+                    - For GitHub URLs, use github_api_request (NOT fetch_url)
+                    - NEVER fabricate content from resources you have not accessed via tool
+                    - Be cautious with destructive commands (rm, etc.)
+                    - IMAGE OUTPUT: Wrap image URLs in Markdown syntax for inline rendering
+                    """;
+            Files.writeString(agentsMd, defaultContent);
+            log.info("Created default AGENTS.md in workspace");
+        } catch (IOException e) {
+            log.warn("Failed to initialize AGENTS.md: {}", e.getMessage());
+        }
     }
 
     private static ServerSentEvent<String> sse(String eventType, Object data) {

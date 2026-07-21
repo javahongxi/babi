@@ -8,10 +8,11 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Modular system prompt builder for BabiAgent.
+ * System prompt builder for BabiAgent.
  *
- * <p>Assembles the system prompt from independent sections, making it easy to
- * maintain, extend, and optionally override via classpath resources.
+ * <p>With HarnessAgent, workspace context (AGENTS.md, MEMORY.md, KNOWLEDGE.md)
+ * is automatically injected by the framework. This builder only provides
+ * babi-specific rules and custom tool guidance that go beyond the workspace context.
  *
  * <p>To customize the prompt without recompiling, place a file at
  * {@code prompts/custom-instructions.md} on the classpath (e.g. under
@@ -23,109 +24,31 @@ public final class SystemPromptBuilder {
     private SystemPromptBuilder() {}
 
     /**
-     * Builds the full system prompt with the given workspace directory and loaded skills.
+     * Builds the system prompt with loaded skills.
      *
-     * @param workspace the absolute path of the agent's working directory
-     * @param skills    the collection of loaded skills (maybe empty)
+     * @param skills the collection of loaded skills (maybe empty)
      */
-    public static String build(String workspace, Collection<Skill> skills) {
+    public static String build(Collection<Skill> skills) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
-                identitySection(workspace),
-                toolsSection(),
-                skillsSection(skills),
                 coreRulesSection(),
                 githubSection(),
+                skillsSection(skills),
                 guidelinesSection(),
                 custom
         ).strip();
     }
 
     /**
-     * Builds the full system prompt with the given workspace directory (no skills injected).
-     *
-     * @param workspace the absolute path of the agent's working directory
-     */
-    public static String build(String workspace) {
-        return build(workspace, Collections.emptyList());
-    }
-
-    /**
-     * Builds the full system prompt using the default workspace (user.dir).
+     * Builds the system prompt with no skills.
      */
     public static String build() {
-        return build(System.getProperty("user.dir"));
+        return build(Collections.emptyList());
     }
 
     // -----------------------------------------------------------------
     //  Sections
     // -----------------------------------------------------------------
-
-    private static String identitySection(String workspace) {
-        return """
-                You are BabiAgent, an expert coding assistant powered by AgentScope Java.
-
-                Your working directory (workspace) is: %s
-                All relative file paths and shell commands use this as the base directory.
-                When creating new projects, always create them INSIDE this workspace directory.
-
-                Your capabilities:
-                1. Read and analyze source code files
-                2. Edit files with precise text replacement
-                3. Search codebases by pattern (ripgrep/grep)
-                4. Execute shell commands for build, test, and deployment tasks
-                5. Provide code review suggestions
-                6. Help debug issues by reading logs and executing diagnostic commands
-                7. Fetch web pages and search the internet for information
-                8. Make HTTP requests to APIs and web services
-                9. Interact with GitHub API (issues, PRs, repos, search, pinned repos, etc.)
-                10. Track multi-step task progress with todo lists
-                """.formatted(workspace);
-    }
-
-    private static String toolsSection() {
-        return """
-                You have access to the following tools:
-                - read_file: Read the contents of a file at a given path
-                - edit_file: Edit a file by replacing an exact text match (old_text → new_text)
-                - shell_command: Execute a shell command on the local system
-                - code_search: Search for a pattern in files (uses ripgrep/grep, returns matches with line numbers)
-                - fetch_url: Fetch a URL and return its content as readable text with structure preserved
-                - web_search: Search the web for information (built-in, no extra API key needed)
-                - http_request: Make HTTP requests (GET, POST, PUT, DELETE, PATCH) to any URL
-                - github_api_request: Call GitHub REST API (token auto-injected, for issues/PRs/repos/search)
-                - github_pinned_repos: Query a GitHub user's pinned repositories via GraphQL (token auto-injected)
-                - todo_write: Create or update a task list for tracking multi-step progress
-                - list_skills: List all available skills (Markdown-based workflow instruction sets)
-                - use_skill: Activate a skill by name to get its full instructions
-                """;
-    }
-
-    private static String skillsSection(Collection<Skill> skills) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("""
-                SKILLS SYSTEM:
-                Skills are reusable workflow instructions stored as Markdown files.
-                They are loaded from two directories:
-                - ~/.agents/skills/ — global shared skills (cross-project reuse)
-                - ~/.babi/skills/   — Babi-specific skills (higher priority, overrides global)
-
-                IMPORTANT: When the user's request matches ANY of the skills below, you MUST
-                call use_skill(skill_name) FIRST to load the full instructions, then follow them.
-                Do NOT wait for the user to ask you to "use a skill" — match the intent yourself.
-                """);
-
-        if (skills != null && !skills.isEmpty()) {
-            sb.append("\nCurrently loaded skills (").append(skills.size()).append("):\n");
-            for (Skill skill : skills) {
-                sb.append("- ").append(skill.name()).append(": ").append(skill.description()).append("\n");
-            }
-            sb.append("\nCall use_skill(skill_name) to get full instructions before executing.");
-        } else {
-            sb.append("\nNo skills currently installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
-        }
-        return sb.toString();
-    }
 
     private static String coreRulesSection() {
         return """
@@ -186,6 +109,32 @@ public final class SystemPromptBuilder {
                    If the token is missing, the tool will return a clear error message —
                    let the tool tell you that, do not preemptively deny the capability.
                 """;
+    }
+
+    private static String skillsSection(Collection<Skill> skills) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
+                SKILLS SYSTEM:
+                Skills are reusable workflow instructions stored as Markdown files.
+                They are loaded from two directories:
+                - ~/.agents/skills/ — global shared skills (cross-project reuse)
+                - ~/.babi/skills/   — Babi-specific skills (higher priority, overrides global)
+
+                IMPORTANT: When the user's request matches ANY of the skills below, you MUST
+                call use_skill(skill_name) FIRST to load the full instructions, then follow them.
+                Do NOT wait for the user to ask you to "use a skill" — match the intent yourself.
+                """);
+
+        if (skills != null && !skills.isEmpty()) {
+            sb.append("\nCurrently loaded skills (").append(skills.size()).append("):\n");
+            for (Skill skill : skills) {
+                sb.append("- ").append(skill.name()).append(": ").append(skill.description()).append("\n");
+            }
+            sb.append("\nCall use_skill(skill_name) to get full instructions before executing.");
+        } else {
+            sb.append("\nNo skills currently installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
+        }
+        return sb.toString();
     }
 
     private static String guidelinesSection() {

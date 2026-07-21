@@ -21,13 +21,6 @@ public final class AgentConstants {
             Path.of(System.getProperty("user.home"), "babi-workspace").toString();
 
     /**
-     * Builds the system prompt for the given workspace.
-     */
-    public static String systemPrompt(String workspace) {
-        return SystemPromptBuilder.build(workspace);
-    }
-
-    /**
      * Resolves a workspace path string, expanding {@code ~} to user.home
      * and converting relative paths to absolute.
      *
