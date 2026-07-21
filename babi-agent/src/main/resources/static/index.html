@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css" id="hljs-light">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css" id="hljs-dark" disabled>
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 30%, #a6c1ee 70%, #fbc2eb 100%); height: 100vh; display: flex; flex-direction: column; overflow: hidden; transition: background 0.3s ease; }
@@ -114,6 +114,50 @@
         .repo-card .repo-meta { font-size: 12px; color: #8b949e; display: flex; gap: 14px; align-items: center; }
         .repo-card .repo-meta .lang-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 3px; vertical-align: middle; }
         .repo-card .repo-meta span { display: flex; align-items: center; gap: 3px; }
+        /* IDE Layout */
+        .main-content { flex: 1; display: flex; overflow: hidden; }
+        .sidebar { width: 240px; min-width: 200px; background: #f8f9fa; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; transition: width 0.2s, min-width 0.2s, opacity 0.2s; overflow: hidden; }
+        .sidebar.collapsed { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
+        .sidebar-header { padding: 10px 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #666; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-header button { background: none; border: none; cursor: pointer; font-size: 14px; color: #666; padding: 2px 6px; border-radius: 4px; }
+        .sidebar-header button:hover { background: rgba(0,0,0,0.06); }
+        .file-tree { flex: 1; overflow-y: auto; padding: 6px 0; font-size: 13px; }
+        .file-tree-item { padding: 4px 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #333; }
+        .file-tree-item:hover { background: rgba(0,0,0,0.05); }
+        .file-tree-item.active { background: rgba(26,115,232,0.12); color: #1a73e8; }
+        .file-tree-item .icon { font-size: 14px; flex-shrink: 0; }
+        .file-tree-item .name { overflow: hidden; text-overflow: ellipsis; }
+        .file-tree-children { padding-left: 16px; }
+        .file-tree-toggle { cursor: pointer; user-select: none; width: 16px; text-align: center; flex-shrink: 0; font-size: 10px; color: #888; }
+        .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .file-preview { width: 0; min-width: 0; background: #fafbfc; border-left: 1px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; transition: width 0.2s, min-width 0.2s; }
+        .file-preview.open { width: 480px; min-width: 320px; }
+        .file-preview-header { padding: 8px 14px; font-size: 12px; font-weight: 600; color: #666; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; background: #f6f8fa; }
+        .file-preview-header .filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-preview-header button { background: none; border: none; cursor: pointer; font-size: 16px; color: #666; padding: 2px 8px; border-radius: 4px; }
+        .file-preview-header button:hover { background: rgba(0,0,0,0.06); }
+        .file-preview-content { flex: 1; overflow: auto; padding: 0; }
+        .file-preview-content pre { margin: 0; padding: 12px 16px; font-size: 12px; line-height: 1.6; tab-size: 4; white-space: pre; width: max-content; min-width: 100%; }
+        .file-preview-content code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+        .sidebar-toggle { position: fixed; left: 8px; bottom: 60px; z-index: 100; background: #1a73e8; color: #fff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: none; align-items: center; justify-content: center; }
+        .sidebar-toggle.visible { display: flex; }
+        /* Dark mode - IDE layout */
+        html[data-theme="dark"] .sidebar { background: #161b22; border-right-color: #30363d; }
+        html[data-theme="dark"] .sidebar-header { color: #8b949e; border-bottom-color: #30363d; }
+        html[data-theme="dark"] .sidebar-header button { color: #8b949e; }
+        html[data-theme="dark"] .sidebar-header button:hover { background: rgba(255,255,255,0.06); }
+        html[data-theme="dark"] .file-tree-item { color: #c9d1d9; }
+        html[data-theme="dark"] .file-tree-item:hover { background: rgba(255,255,255,0.05); }
+        html[data-theme="dark"] .file-tree-item.active { background: rgba(88,166,255,0.15); color: #58a6ff; }
+        html[data-theme="dark"] .file-preview { background: #0d1117; border-left-color: #30363d; }
+        html[data-theme="dark"] .file-preview-header { background: #161b22; color: #8b949e; border-bottom-color: #30363d; }
+        html[data-theme="dark"] .file-preview-header button { color: #8b949e; }
+        html[data-theme="dark"] .file-preview-header button:hover { background: rgba(255,255,255,0.06); }
+        html[data-theme="dark"] .file-preview-content pre { background: #0d1117; }
+        html[data-theme="dark"] .file-preview-content pre code.hljs { color: #c9d1d9; }
+        .file-preview-content .image-preview { display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .file-preview-content .image-preview img { max-width: 100%; max-height: 80vh; border-radius: 8px; cursor: zoom-in; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+        html[data-theme="dark"] .sidebar-toggle { background: #1f6feb; }
     </style>
 </head>
 <body>
@@ -128,11 +172,35 @@
         <input type="text" id="session-id" value="default" placeholder="session id">
         <button onclick="clearChat()" style="background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#666;">清空对话</button>
     </div></div>
-    <div id="chat-container"><div id="chat-inner"></div></div>
-    <div id="input-area"><div class="input-inner">
-        <textarea id="user-input" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="1"></textarea>
-        <button id="send-btn" onclick="sendMessage()">发送</button>
-    </div></div>
+    <div class="main-content">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span>📁 工作区</span>
+                <span style="display:flex;gap:4px;">
+                    <button onclick="refreshTree()" title="刷新文件树">🔄</button>
+                    <button onclick="toggleSidebar()" title="收起侧边栏">✕</button>
+                </span>
+            </div>
+            <div class="file-tree" id="file-tree"></div>
+        </div>
+        <div class="content-area">
+            <div id="chat-container"><div id="chat-inner"></div></div>
+            <div id="input-area"><div class="input-inner">
+                <textarea id="user-input" placeholder="输入消息，Enter 发送，Shift+Enter 换行..." rows="1"></textarea>
+                <button id="send-btn" onclick="sendMessage()">发送</button>
+            </div></div>
+        </div>
+        <div class="file-preview" id="file-preview">
+            <div class="file-preview-header">
+                <span class="filename" id="preview-filename"></span>
+                <button onclick="closeFilePreview()" title="关闭预览">✕</button>
+            </div>
+            <div class="file-preview-content" id="file-preview-content">
+                <pre><code id="preview-code"></code></pre>
+            </div>
+        </div>
+    </div>
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="展开侧边栏">☰</button>
 
     <script>
         const chatInner = document.getElementById('chat-inner');
@@ -152,6 +220,13 @@
             marked.setOptions({ breaks: true });
         } else {
             console.error('marked.js failed to load from CDN');
+        }
+
+        // Check highlight.js
+        if (typeof hljs !== 'undefined') {
+            console.log('highlight.js loaded, available languages:', hljs.listLanguages().length);
+        } else {
+            console.error('highlight.js failed to load');
         }
 
         // Auto-resize textarea
@@ -485,6 +560,175 @@
         })();
 
         userInput.focus();
+
+        // ========== File Tree & Preview ==========
+        const fileTreeEl = document.getElementById('file-tree');
+        const sidebarEl = document.getElementById('sidebar');
+        const sidebarToggleEl = document.getElementById('sidebar-toggle');
+        const filePreviewEl = document.getElementById('file-preview');
+        const previewFilenameEl = document.getElementById('preview-filename');
+        const previewCodeEl = document.getElementById('preview-code');
+        let activeFileItem = null;
+
+        const FILE_ICONS = {
+            'java': '☕', 'js': '📜', 'ts': '📘', 'py': '🐍', 'go': '🔵',
+            'html': '🌐', 'css': '🎨', 'json': '📋', 'xml': '📰', 'yaml': '⚙️',
+            'yml': '⚙️', 'md': '📝', 'sh': '🖥️', 'sql': '🗃️', 'txt': '📄',
+            'default': '📄'
+        };
+
+        function getFileIcon(name, isDir) {
+            if (isDir) return '📁';
+            const ext = name.split('.').pop().toLowerCase();
+            return FILE_ICONS[ext] || FILE_ICONS['default'];
+        }
+
+        async function loadTree(path, parentEl) {
+            try {
+                const resp = await fetch('/api/workspace/tree?path=' + encodeURIComponent(path));
+                const items = await resp.json();
+                items.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'file-tree-item';
+                    row.dataset.path = item.path;
+                    row.dataset.isDir = item.isDir;
+
+                    if (item.isDir) {
+                        const toggle = document.createElement('span');
+                        toggle.className = 'file-tree-toggle';
+                        toggle.textContent = '▶';
+                        row.appendChild(toggle);
+
+                        const icon = document.createElement('span');
+                        icon.className = 'icon';
+                        icon.textContent = '📁';
+                        row.appendChild(icon);
+
+                        const name = document.createElement('span');
+                        name.className = 'name';
+                        name.textContent = item.name;
+                        row.appendChild(name);
+
+                        const children = document.createElement('div');
+                        children.className = 'file-tree-children';
+                        children.style.display = 'none';
+
+                        row.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            const isOpen = children.style.display !== 'none';
+                            if (isOpen) {
+                                children.style.display = 'none';
+                                toggle.textContent = '▶';
+                                icon.textContent = '📁';
+                            } else {
+                                if (children.children.length === 0) {
+                                    await loadTree(item.path, children);
+                                }
+                                children.style.display = 'block';
+                                toggle.textContent = '▼';
+                                icon.textContent = '📂';
+                            }
+                        });
+
+                        parentEl.appendChild(row);
+                        parentEl.appendChild(children);
+                    } else {
+                        const icon = document.createElement('span');
+                        icon.className = 'icon';
+                        icon.textContent = getFileIcon(item.name, false);
+                        row.appendChild(icon);
+
+                        const name = document.createElement('span');
+                        name.className = 'name';
+                        name.textContent = item.name;
+                        row.appendChild(name);
+
+                        row.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openFilePreview(item.path, item.name);
+                            if (activeFileItem) activeFileItem.classList.remove('active');
+                            row.classList.add('active');
+                            activeFileItem = row;
+                        });
+
+                        parentEl.appendChild(row);
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to load file tree:', err);
+            }
+        }
+
+        async function openFilePreview(path, name) {
+            previewFilenameEl.textContent = name;
+            filePreviewEl.classList.add('open');
+
+            const contentEl = document.getElementById('file-preview-content');
+            const isImage = /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i.test(name);
+
+            if (isImage) {
+                // Image preview
+                contentEl.innerHTML = '<div class="image-preview"><img src="/api/workspace/image?path=' + encodeURIComponent(path) + '" alt="' + name + '"></div>';
+                contentEl.querySelector('img').addEventListener('click', function() {
+                    openLightbox(this.src);
+                });
+                return;
+            }
+
+            // Code/text preview
+            contentEl.innerHTML = '<pre><code id="preview-code"></code></pre>';
+            const codeEl = document.getElementById('preview-code');
+            codeEl.textContent = 'Loading...';
+            codeEl.className = '';
+            codeEl.removeAttribute('data-highlighted');
+
+            try {
+                const resp = await fetch('/api/workspace/file?path=' + encodeURIComponent(path));
+                const data = await resp.json();
+                if (data.error) {
+                    codeEl.textContent = 'Error: ' + data.error;
+                    return;
+                }
+                console.log('File preview:', name, 'language:', data.language, 'size:', data.size);
+                if (data.language && data.language !== 'plaintext' && typeof hljs !== 'undefined') {
+                    try {
+                        const result = hljs.highlight(data.content, { language: data.language });
+                        codeEl.innerHTML = result.value;
+                        codeEl.className = 'hljs language-' + data.language;
+                        console.log('Highlight applied successfully');
+                    } catch (hljsErr) {
+                        console.error('hljs.highlight error:', hljsErr);
+                        codeEl.textContent = data.content;
+                    }
+                } else {
+                    codeEl.textContent = data.content;
+                    console.log('Skipping highlight: language=', data.language, 'hljs=', typeof hljs);
+                }
+            } catch (err) {
+                codeEl.textContent = 'Failed to load file: ' + err.message;
+            }
+        }
+
+        function closeFilePreview() {
+            filePreviewEl.classList.remove('open');
+            if (activeFileItem) {
+                activeFileItem.classList.remove('active');
+                activeFileItem = null;
+            }
+        }
+
+        function toggleSidebar() {
+            sidebarEl.classList.toggle('collapsed');
+            sidebarToggleEl.classList.toggle('visible', sidebarEl.classList.contains('collapsed'));
+        }
+
+        function refreshTree() {
+            fileTreeEl.innerHTML = '';
+            loadTree('', fileTreeEl);
+        }
+
+        // Initialize file tree on load
+        loadTree('', fileTreeEl);
     </script>
 </body>
 </html>
