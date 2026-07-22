@@ -5,6 +5,7 @@ import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
@@ -45,13 +46,14 @@ public class BabiAgentCli {
         }
 
         // Parse --workspace argument
-        String workspace = AgentConstants.DEFAULT_WORKSPACE;
+        String rawWorkspace = "~/babi-workspace";
         for (int i = 0; i < args.length; i++) {
             if ("--workspace".equals(args[i]) && i + 1 < args.length) {
-                workspace = AgentConstants.resolveWorkspace(args[i + 1]);
+                rawWorkspace = args[i + 1];
                 break;
             }
         }
+        String workspace = AgentUtils.resolveWorkspace(rawWorkspace);
         Path workspacePath = Path.of(workspace);
         // Ensure workspace directory exists
         Files.createDirectories(workspacePath);
@@ -79,10 +81,16 @@ public class BabiAgentCli {
         String sysPrompt = SystemPromptBuilder.build(skillTool.getSkills().values());
 
         // Build HarnessAgent (auto-creates session store at ~/.agentscope/state/BabiAgent/)
+        String modelName = System.getenv().getOrDefault("BABI_MODEL_NAME", "qwen-plus");
         HarnessAgent agent = HarnessAgent.builder()
-                .name(AgentConstants.AGENT_NAME)
+                .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
-                .model(AgentConstants.createModel())
+                .model(DashScopeChatModel.builder()
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .stream(true)
+                        .enableSearch(true)
+                        .build())
                 .toolkit(toolkit)
                 .workspace(workspacePath)
                 .filesystem(new LocalFilesystemSpec().project(workspacePath))

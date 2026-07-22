@@ -34,7 +34,7 @@ public class WorkspaceController {
 
     public WorkspaceController(
             @Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        this.workspaceRoot = Path.of(AgentConstants.resolveWorkspace(workspace));
+        this.workspaceRoot = Path.of(AgentUtils.resolveWorkspace(workspace));
     }
 
     /**

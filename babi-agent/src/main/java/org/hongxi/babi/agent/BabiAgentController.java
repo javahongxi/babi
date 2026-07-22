@@ -10,6 +10,7 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
@@ -82,8 +83,9 @@ public class BabiAgentController {
     private final ToolEventBus toolEventBus;
 
     public BabiAgentController(
-            @Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        String resolvedWorkspace = AgentConstants.resolveWorkspace(workspace);
+            @Value("${babi.agent.workspace:~/babi-workspace}") String workspace,
+            @Value("${agentscope.model.name:qwen-plus}") String modelName) {
+        String resolvedWorkspace = AgentUtils.resolveWorkspace(workspace);
         Path workspacePath = Path.of(resolvedWorkspace);
 
         // Ensure workspace directory exists
@@ -107,10 +109,10 @@ public class BabiAgentController {
         log.info("ToolEventBus initialized");
 
         // Build HarnessAgent singleton (thread-safe, reusable across sessions)
-        this.agent = buildHarnessAgent(workspacePath);
+        this.agent = buildHarnessAgent(workspacePath, modelName);
     }
 
-    private HarnessAgent buildHarnessAgent(Path workspacePath) {
+    private HarnessAgent buildHarnessAgent(Path workspacePath, String modelName) {
         // Register babi-specific custom tools (HarnessAgent provides read_file/edit_file/execute/grep natively)
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new FetchUrlTool());
@@ -123,9 +125,14 @@ public class BabiAgentController {
         String sysPrompt = SystemPromptBuilder.build(skillTool.getSkills().values());
 
         return HarnessAgent.builder()
-                .name(AgentConstants.AGENT_NAME)
+                .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
-                .model(AgentConstants.createModel())
+                .model(DashScopeChatModel.builder()
+                        .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                        .modelName(modelName)
+                        .stream(true)
+                        .enableSearch(true)
+                        .build())
                 .toolkit(toolkit)
                 .workspace(workspacePath)
                 .filesystem(new LocalFilesystemSpec().project(workspacePath))
