@@ -129,7 +129,7 @@
         .file-tree-item .name { overflow: hidden; text-overflow: ellipsis; }
         .file-tree-children { padding-left: 16px; }
         .file-tree-toggle { cursor: pointer; user-select: none; width: 16px; text-align: center; flex-shrink: 0; font-size: 10px; color: #888; }
-        .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
         .file-preview { width: 0; min-width: 0; background: #fafbfc; border-left: 1px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; transition: width 0.2s, min-width 0.2s; }
         .file-preview.open { width: 480px; min-width: 320px; }
         .file-preview-header { padding: 8px 14px; font-size: 12px; font-weight: 600; color: #666; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; background: #f6f8fa; }
@@ -381,6 +381,13 @@
             return html;
         }
 
+        // Scroll helper: wait for DOM to fully render, then scroll
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 20);
+        }
+
         function makeScheduleRender(tokenElRef, textRef) {
             let timer = null;
             return function() {
@@ -389,7 +396,7 @@
                     timer = null;
                     if (tokenElRef.el && textRef.text) {
                         renderMarkdown(tokenElRef.el, textRef.text);
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                        scrollToBottom();
                     }
                 }, 80);
             };
@@ -404,7 +411,7 @@
                 renderMarkdown(div, text);
             }
             chatInner.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottom();
             return div;
         }
 
@@ -438,7 +445,7 @@
                 countRef.summaryEl.textContent = '⋯ 已调用 ' + countRef.n + ' 次工具（仅显示最近 2 次）';
             }
 
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottom();
         }
 
         function sendMessage() {
@@ -459,6 +466,7 @@
             indicator.className = 'typing-indicator';
             indicator.innerHTML = '<span></span><span></span><span></span>';
             agentMsg.appendChild(indicator);
+            scrollToBottom();
 
             sendBtn.disabled = true;
 
@@ -507,6 +515,7 @@
                 if (tokenEl && rawText) {
                     renderMarkdown(tokenEl, rawText);
                 }
+                scrollToBottom();
                 eventSource.close();
                 sendBtn.disabled = false;
                 userInput.focus();
@@ -519,6 +528,7 @@
                 } else if (tokenEl && rawText) {
                     renderMarkdown(tokenEl, rawText);
                 }
+                scrollToBottom();
                 eventSource.close();
                 sendBtn.disabled = false;
                 userInput.focus();
