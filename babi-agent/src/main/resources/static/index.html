@@ -208,12 +208,7 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         const sessionIdInput = document.getElementById('session-id');
-        let currentAgentMsg = null;
-        let currentTokenEl = null;
-        let rawAgentText = '';
-        let renderTimer = null;
-        let toolEventCount = 0;
-        let toolEventSummary = null;
+        // All stream state is local to sendMessage() — no globals needed
 
         // Configure marked
         if (typeof marked !== 'undefined') {
@@ -386,15 +381,18 @@
             return html;
         }
 
-        function scheduleRender() {
-            if (renderTimer) return;
-            renderTimer = setTimeout(() => {
-                renderTimer = null;
-                if (currentTokenEl && rawAgentText) {
-                    renderMarkdown(currentTokenEl, rawAgentText);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                }
-            }, 80);
+        function makeScheduleRender(tokenElRef, textRef) {
+            let timer = null;
+            return function() {
+                if (timer) return;
+                timer = setTimeout(() => {
+                    timer = null;
+                    if (tokenElRef.el && textRef.text) {
+                        renderMarkdown(tokenElRef.el, textRef.text);
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                }, 80);
+            };
         }
 
         function addMessage(role, text) {
@@ -410,7 +408,7 @@
             return div;
         }
 
-        function addToolEvent(agentMsg, tool, type, state) {
+        function addToolEvent(agentMsg, tool, type, state, countRef) {
             const div = document.createElement('div');
             let cls = 'tool-event';
             let text = '';
@@ -424,22 +422,20 @@
             div.textContent = text;
             agentMsg.appendChild(div);
 
-            toolEventCount++;
+            countRef.n++;
             // Only keep the latest 2 tool events visible
-            if (toolEventCount > 2) {
-                // Remove the oldest tool-event div (3rd from end becomes 1st)
+            if (countRef.n > 2) {
                 const events = agentMsg.querySelectorAll('.tool-event');
                 if (events.length > 2) {
                     events[0].remove();
                 }
-                // Show/update summary
-                if (!toolEventSummary) {
-                    toolEventSummary = document.createElement('div');
-                    toolEventSummary.className = 'tool-summary';
-                    toolEventSummary.style.cssText = 'font-size:12px;color:#999;font-style:italic;padding:4px 10px;margin:4px 0;';
-                    agentMsg.insertBefore(toolEventSummary, agentMsg.firstChild);
+                if (!countRef.summaryEl) {
+                    countRef.summaryEl = document.createElement('div');
+                    countRef.summaryEl.className = 'tool-summary';
+                    countRef.summaryEl.style.cssText = 'font-size:12px;color:#999;font-style:italic;padding:4px 10px;margin:4px 0;';
+                    agentMsg.insertBefore(countRef.summaryEl, agentMsg.firstChild);
                 }
-                toolEventSummary.textContent = '⋯ 已调用 ' + toolEventCount + ' 次工具（仅显示最近 2 次）';
+                countRef.summaryEl.textContent = '⋯ 已调用 ' + countRef.n + ' 次工具（仅显示最近 2 次）';
             }
 
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -454,77 +450,76 @@
             userInput.value = '';
             userInput.style.height = 'auto';
 
-            // Create agent message container
-            currentAgentMsg = document.createElement('div');
-            currentAgentMsg.className = 'msg agent';
-            chatInner.appendChild(currentAgentMsg);
+            // --- All stream state is LOCAL to this invocation ---
+            const agentMsg = document.createElement('div');
+            agentMsg.className = 'msg agent';
+            chatInner.appendChild(agentMsg);
 
-            // Show typing indicator
             const indicator = document.createElement('div');
             indicator.className = 'typing-indicator';
             indicator.innerHTML = '<span></span><span></span><span></span>';
-            currentAgentMsg.appendChild(indicator);
+            agentMsg.appendChild(indicator);
 
             sendBtn.disabled = true;
+
+            let tokenEl = null;
+            let rawText = '';
+            const tokenElRef = { el: null };
+            const textRef = { text: '' };
+            const countRef = { n: 0, summaryEl: null };
+
+            const scheduleRender = makeScheduleRender(tokenElRef, textRef);
 
             const url = '/api/chat/stream?message=' + encodeURIComponent(message) + '&sessionId=' + encodeURIComponent(sessionId);
             const eventSource = new EventSource(url);
 
-            rawAgentText = '';
-
             eventSource.addEventListener('token', function(e) {
-                // Remove indicator on first token
                 if (indicator.parentNode) indicator.remove();
                 const data = JSON.parse(e.data);
-                rawAgentText += data.data;
-                if (!currentTokenEl) {
-                    currentTokenEl = document.createElement('div');
-                    currentTokenEl.className = 'token-text';
-                    currentAgentMsg.appendChild(currentTokenEl);
+                rawText += data.data;
+                textRef.text = rawText;
+                if (!tokenEl) {
+                    tokenEl = document.createElement('div');
+                    tokenEl.className = 'token-text';
+                    agentMsg.appendChild(tokenEl);
+                    tokenElRef.el = tokenEl;
                 }
                 scheduleRender();
             });
 
             eventSource.addEventListener('tool_call', function(e) {
-                if (indicator.parentNode) indicator.remove();
+                if (!e.data) return;
                 const data = JSON.parse(e.data);
-                addToolEvent(currentAgentMsg, data.tool, 'tool_call');
+                if (!data) return;
+                if (indicator.parentNode) indicator.remove();
+                addToolEvent(agentMsg, data.tool || 'unknown', 'tool_call', null, countRef);
             });
 
             eventSource.addEventListener('tool_result', function(e) {
+                if (!e.data) return;
                 const data = JSON.parse(e.data);
-                addToolEvent(currentAgentMsg, data.tool, 'tool_result', data.state);
+                if (!data) return;
+                addToolEvent(agentMsg, data.tool || 'unknown', 'tool_result', data.state, countRef);
             });
 
             eventSource.addEventListener('done', function() {
                 if (indicator.parentNode) indicator.remove();
-                // Final render to ensure complete Markdown
-                if (currentTokenEl && rawAgentText) {
-                    renderMarkdown(currentTokenEl, rawAgentText);
+                if (tokenEl && rawText) {
+                    renderMarkdown(tokenEl, rawText);
                 }
                 eventSource.close();
-                currentAgentMsg = null;
-                currentTokenEl = null;
-                rawAgentText = '';
-                toolEventCount = 0;
-                toolEventSummary = null;
                 sendBtn.disabled = false;
                 userInput.focus();
             });
 
             eventSource.onerror = function() {
                 if (indicator.parentNode) indicator.remove();
-                if (currentAgentMsg && !rawAgentText.trim()) {
-                    currentAgentMsg.textContent = '⚠️ 连接中断，请重试';
-                } else if (currentTokenEl && rawAgentText) {
-                    renderMarkdown(currentTokenEl, rawAgentText);
+                if (!rawText.trim()) {
+                    agentMsg.textContent = '⚠️ 连接中断，请重试';
+                } else if (tokenEl && rawText) {
+                    renderMarkdown(tokenEl, rawText);
                 }
                 eventSource.close();
-                currentAgentMsg = null;
-                currentTokenEl = null;
-                rawAgentText = '';
-                toolEventCount = 0;
-                toolEventSummary = null;
                 sendBtn.disabled = false;
                 userInput.focus();
             };

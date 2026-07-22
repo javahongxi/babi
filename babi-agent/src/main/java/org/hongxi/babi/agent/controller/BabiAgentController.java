@@ -194,19 +194,35 @@ public class BabiAgentController {
             try {
                 Msg userMsg = new UserMessage(message);
                 for (AgentEvent event : agent.streamEvents(userMsg, ctx).toIterable()) {
+                    if (sink.isCancelled()) {
+                        break;
+                    }
                     if (event instanceof TextBlockDeltaEvent e) {
-                        sink.next(sse("token", Map.of("type", "token", "data", e.getDelta())));
+                        String delta = e.getDelta() != null ? e.getDelta() : "";
+                        sink.next(sse("token", Map.of("type", "token", "data", delta)));
                     } else if (event instanceof ToolResultEndEvent e) {
+                        String toolName = e.getToolCallName() != null ? e.getToolCallName() : "unknown";
+                        String state = e.getState() != null ? e.getState().name() : "UNKNOWN";
                         sink.next(sse("tool_result", Map.of(
                                 "type", "tool_result",
-                                "tool", e.getToolCallName(),
-                                "state", e.getState().name())));
+                                "tool", toolName,
+                                "state", state)));
                     }
                 }
-                sink.next(sse("done", Map.of("type", "done")));
-                sink.complete();
+                if (!sink.isCancelled()) {
+                    sink.next(sse("done", Map.of("type", "done")));
+                    sink.complete();
+                }
             } catch (Exception e) {
-                sink.error(e);
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    log.debug("Stream interrupted (client likely disconnected)");
+                } else if (isClientCancellation(e)) {
+                    log.debug("Client disconnected during streaming: {}", e.getMessage());
+                } else {
+                    log.error("Streaming error: {}", e.getMessage(), e);
+                    sink.error(e);
+                }
             }
         }).subscribeOn(Schedulers.boundedElastic());
 
@@ -302,5 +318,31 @@ public class BabiAgentController {
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    /**
+     * Check whether the exception was caused by the client disconnecting
+     * (e.g. browser tab closed, network drop).
+     */
+    private static boolean isClientCancellation(Throwable e) {
+        while (e != null) {
+            if (e instanceof InterruptedException) {
+                return true;
+            }
+            String name = e.getClass().getName();
+            if (name.contains("CancelException") || name.contains("CancellationException")) {
+                return true;
+            }
+            String msg = e.getMessage();
+            if (msg != null && (msg.contains("Broken pipe")
+                    || msg.contains("Connection reset")
+                    || msg.contains("Connection prematurely closed")
+                    || msg.contains("Cancelled")
+                    || msg.contains("cancelled"))) {
+                return true;
+            }
+            e = e.getCause();
+        }
+        return false;
     }
 }
