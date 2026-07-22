@@ -42,9 +42,14 @@ mvn spring-boot:run -pl babi-agent
 ### 命令行模式
 
 ```bash
-mvn exec:java -pl babi-agent
+# 一键安装（构建 + 配置环境变量，之后终端直接输入 babi 启动）
+./install.sh
+
+# 安装后使用
+babi                            # 默认启动
+babi --workspace ~/my-project   # 指定工作目录
 ```
 
-启动后进入交互式终端对话，适合快速调试或无 GUI 环境。
+> 开发调试时也可直接运行：`mvn exec:java -pl babi-agent`
 
 &copy; [hongxi.org](http://hongxi.org)

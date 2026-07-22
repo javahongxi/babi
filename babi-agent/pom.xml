@@ -65,4 +65,24 @@
         </plugins>
     </build>
 
+    <profiles>
+        <!-- CLI profile: builds a standalone CLI jar with BabiAgentCli as entry point -->
+        <!-- Usage: mvn package -Pcli -DskipTests -->
+        <profile>
+            <id>cli</id>
+            <build>
+                <finalName>babi-agent-cli</finalName>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>org.hongxi.babi.agent.BabiAgentCli</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
