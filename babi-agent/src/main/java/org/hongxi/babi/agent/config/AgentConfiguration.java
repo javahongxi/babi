@@ -94,7 +94,8 @@ public class AgentConfiguration {
             Path workspacePath,
             AgentStateStore stateStore,
             ToolEventBus toolEventBus,
-            @Value("${agentscope.model.name:qwen-plus}") String modelName) {
+            @Value("${agentscope.model.name:qwen-plus}") String modelName,
+            @Value("${agentscope.model.fallback:qwen-turbo}") String fallbackModelName) {
 
         // Register babi-specific custom tools
         Toolkit toolkit = new Toolkit();
@@ -121,7 +122,11 @@ public class AgentConfiguration {
                 .filesystem(new LocalFilesystemSpec().project(workspacePath))
                 .stateStore(stateStore)
                 .maxIters(20)
+                .maxRetries(2)              // Tool calls retry up to 2 times on failure
+                .fallbackModel(fallbackModelName)  // Auto-fallback when primary model is unavailable
                 .enableTaskList()
+                .enablePlanMode()            // Plan mode: investigate first, then execute
+                .allowShellInPlanMode()      // Allow build/test commands in plan mode
                 .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
                 .disableMemoryTools()          // Not needed for now
                 .disableMemoryHooks()          // Disable MemoryFlush + MemoryMaintenance middleware

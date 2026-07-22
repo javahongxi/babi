@@ -13,3 +13,4 @@ agentscope:
   model:
     provider: dashscope
     name: qwen-plus
+    fallback: qwen-turbo

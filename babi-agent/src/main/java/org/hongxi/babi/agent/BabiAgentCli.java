@@ -82,6 +82,7 @@ public class BabiAgentCli {
 
         // Build HarnessAgent (auto-creates session store at ~/.agentscope/state/BabiAgent/)
         String modelName = System.getenv().getOrDefault("BABI_MODEL_NAME", "qwen-plus");
+        String fallbackModel = System.getenv().getOrDefault("BABI_FALLBACK_MODEL", "qwen-turbo");
         HarnessAgent agent = HarnessAgent.builder()
                 .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
@@ -95,7 +96,11 @@ public class BabiAgentCli {
                 .workspace(workspacePath)
                 .filesystem(new LocalFilesystemSpec().project(workspacePath))
                 .maxIters(20)
+                .maxRetries(2)              // Tool calls retry up to 2 times on failure
+                .fallbackModel(fallbackModel)  // Auto-fallback when primary model is unavailable
                 .enableTaskList()
+                .enablePlanMode()            // Plan mode: investigate first, then execute
+                .allowShellInPlanMode()      // Allow build/test commands in plan mode
                 .disableDynamicSkills()
                 .disableMemoryTools()
                 .disableMemoryHooks()
