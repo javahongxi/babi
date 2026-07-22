@@ -171,6 +171,7 @@
         <label>Session:</label>
         <input type="text" id="session-id" value="default" placeholder="session id">
         <button onclick="clearChat()" style="background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#666;">清空对话</button>
+        <button onclick="clearMemory()" style="background:none;border:1px solid #ddd;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer;color:#666;" title="清除工作区记忆（MEMORY.md）">清除记忆</button>
     </div></div>
     <div class="main-content">
         <div class="sidebar collapsed" id="sidebar">
@@ -209,6 +210,7 @@
         const sendBtn = document.getElementById('send-btn');
         const sessionIdInput = document.getElementById('session-id');
         // All stream state is local to sendMessage() — no globals needed
+        let isSending = false; // Guard against EventSource auto-reconnect duplicates
 
         // Configure marked
         if (typeof marked !== 'undefined') {
@@ -246,6 +248,18 @@
                 .then(r => r.json())
                 .then(data => console.log('Session deleted:', data.message))
                 .catch(err => console.warn('Delete session failed:', err));
+        }
+
+        function clearMemory() {
+            if (!confirm('确定要清除工作区记忆吗？这将删除 MEMORY.md，Agent 将不再记得之前的个人信息和上下文。')) return;
+            const sessionId = sessionIdInput.value.trim() || 'default';
+            fetch('/api/chat/memory?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    console.log('Memory cleared:', data.message);
+                    alert(data.message);
+                })
+                .catch(err => console.warn('Clear memory failed:', err));
         }
 
         function renderMarkdown(el, text) {
@@ -451,6 +465,8 @@
         function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
+            if (isSending) return; // Prevent duplicate sends (EventSource auto-reconnect)
+            isSending = true;
 
             const sessionId = sessionIdInput.value.trim() || 'default';
             addMessage('user', message);
@@ -517,11 +533,14 @@
                 }
                 scrollToBottom();
                 eventSource.close();
+                isSending = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             });
 
             eventSource.onerror = function() {
+                // Always close immediately to prevent EventSource auto-reconnect
+                eventSource.close();
                 if (indicator.parentNode) indicator.remove();
                 if (!rawText.trim()) {
                     agentMsg.textContent = '⚠️ 连接中断，请重试';
@@ -529,7 +548,7 @@
                     renderMarkdown(tokenEl, rawText);
                 }
                 scrollToBottom();
-                eventSource.close();
+                isSending = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             };
@@ -724,7 +743,12 @@
 
         function toggleSidebar() {
             sidebarEl.classList.toggle('collapsed');
-            sidebarToggleEl.classList.toggle('visible', sidebarEl.classList.contains('collapsed'));
+            const isCollapsed = sidebarEl.classList.contains('collapsed');
+            sidebarToggleEl.classList.toggle('visible', isCollapsed);
+            // Close file preview when collapsing sidebar
+            if (isCollapsed) {
+                closeFilePreview();
+            }
         }
 
         function refreshTree() {

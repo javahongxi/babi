@@ -43,6 +43,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Web API for the Babi Agent (WebFlux).
@@ -83,6 +85,13 @@ public class BabiAgentController {
     private final HarnessAgent agent;
     private final AgentStateStore stateStore;
     private final ToolEventBus toolEventBus;
+    private final Path workspacePath;
+
+    /**
+     * Tracks in-flight requests per session to prevent duplicate message processing
+     * caused by browser EventSource auto-reconnect.
+     */
+    private final ConcurrentMap<String, String> activeSessionMessages = new ConcurrentHashMap<>();
 
     public BabiAgentController(
             @Value("${babi.agent.workspace:~/babi-workspace}") String workspace,
@@ -111,6 +120,7 @@ public class BabiAgentController {
         log.info("ToolEventBus initialized");
 
         // Build HarnessAgent singleton (thread-safe, reusable across sessions)
+        this.workspacePath = workspacePath;
         this.agent = buildHarnessAgent(workspacePath, modelName);
     }
 
@@ -171,6 +181,15 @@ public class BabiAgentController {
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
+        // Deduplication: reject if the same session already has an in-flight request
+        // with the same message (caused by EventSource auto-reconnect)
+        String dedupKey = sessionId + ":" + message;
+        String existing = activeSessionMessages.putIfAbsent(sessionId, dedupKey);
+        if (existing != null && existing.equals(dedupKey)) {
+            log.debug("Rejecting duplicate request for session={}, message={}", sessionId, message);
+            return Flux.just(sse("done", Map.of("type", "done", "duplicate", true)));
+        }
+
         RuntimeContext ctx = RuntimeContext.builder()
                 .sessionId(sessionId)
                 .build();
@@ -230,7 +249,7 @@ public class BabiAgentController {
         return Flux.merge(
                 toolEvents.takeUntilOther(agentEvents.then()),
                 agentEvents
-        );
+        ).doFinally(sig -> activeSessionMessages.remove(sessionId));
     }
 
     /**
@@ -244,12 +263,20 @@ public class BabiAgentController {
     public Mono<String> sendChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
+        // Deduplication guard for synchronous endpoint
+        String dedupKey = sessionId + ":" + message;
+        String existing = activeSessionMessages.putIfAbsent(sessionId, dedupKey);
+        if (existing != null && existing.equals(dedupKey)) {
+            log.debug("Rejecting duplicate send for session={}, message={}", sessionId, message);
+            return Mono.just("");
+        }
         RuntimeContext ctx = RuntimeContext.builder()
                 .sessionId(sessionId)
                 .build();
         Msg userMsg = new UserMessage(message);
         return agent.call(userMsg, ctx)
-                .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "");
+                .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "")
+                .doFinally(sig -> activeSessionMessages.remove(sessionId));
     }
 
     /**
@@ -262,8 +289,33 @@ public class BabiAgentController {
     public Mono<Map<String, String>> deleteSession(
             @RequestParam String sessionId) {
         stateStore.delete(null, sessionId);
+        activeSessionMessages.remove(sessionId);
         log.info("Session deleted: {}", sessionId);
         return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted"));
+    }
+
+    /**
+     * Delete workspace memory files (MEMORY.md) for a given session.
+     *
+     * @param sessionId session identifier (defaults to "default")
+     * @return result message
+     */
+    @DeleteMapping("/memory")
+    public Mono<Map<String, String>> deleteMemory(
+            @RequestParam(defaultValue = "default") String sessionId) {
+        Path memoryFile = workspacePath.resolve(sessionId).resolve("MEMORY.md");
+        boolean deleted = false;
+        try {
+            deleted = Files.deleteIfExists(memoryFile);
+        } catch (IOException e) {
+            log.warn("Failed to delete memory file: {}", memoryFile, e);
+        }
+        if (deleted) {
+            log.info("Memory cleared for session: {}", sessionId);
+            return Mono.just(Map.of("status", "ok", "message", "Memory cleared for session '" + sessionId + "'"));
+        } else {
+            return Mono.just(Map.of("status", "ok", "message", "No memory file found for session '" + sessionId + "'"));
+        }
     }
 
     /**
