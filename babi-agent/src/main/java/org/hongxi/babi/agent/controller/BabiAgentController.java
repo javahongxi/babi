@@ -8,23 +8,10 @@ import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.core.state.JsonFileAgentStateStore;
-import io.agentscope.core.tool.Toolkit;
-import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
-import org.hongxi.babi.agent.util.AgentUtils;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
-import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
-import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
-import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
-import org.hongxi.babi.agent.tool.FetchUrlTool;
-import org.hongxi.babi.agent.tool.GitHubApiTool;
-import org.hongxi.babi.agent.tool.HttpRequestTool;
-import org.hongxi.babi.agent.tool.SkillTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,7 +25,6 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -47,30 +33,16 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Web API for the Babi Agent (WebFlux).
  *
- * <p>Uses {@link HarnessAgent} (thread-safe singleton) instead of raw ReActAgent.
- * Each request creates a new {@link RuntimeContext} for session isolation.
- *
- * <p>HarnessAgent provides built-in tools:
- * <ul>
- *   <li>{@code read_file} / {@code write_file} / {@code edit_file} / {@code grep_files} — filesystem operations</li>
- *   <li>{@code execute} — shell command execution</li>
- *   <li>Memory tools (memory_save / memory_search / memory_get)</li>
- *   <li>Workspace context injection (AGENTS.md, MEMORY.md, KNOWLEDGE.md)</li>
- *   <li>Context compaction and tool result eviction</li>
- * </ul>
- *
- * <p>Custom babi tools registered on top:
- * <ul>
- *   <li>{@code fetch_url} — web page fetching</li>
- *   <li>{@code http_request} — HTTP API calls</li>
- *   <li>{@code github_api_request} — GitHub REST API</li>
- *   <li>{@code list_skills} / {@code use_skill} — babi skill system</li>
- * </ul>
+ * <p>All agent infrastructure (HarnessAgent, AgentStateStore, ToolEventBus, workspace)
+ * is assembled by {@link org.hongxi.babi.agent.config.AgentConfiguration} and injected here.
+ * This controller only handles HTTP concerns: request deduplication, SSE streaming, and response formatting.
  *
  * <p>Endpoints:
  * <ul>
  *   <li>{@code GET /api/chat/stream} — SSE streaming (form params: message, sessionId)</li>
  *   <li>{@code GET /api/chat/send} — synchronous reply (form params: message, sessionId)</li>
+ *   <li>{@code DELETE /api/chat/session} — delete a session</li>
+ *   <li>{@code DELETE /api/chat/memory} — clear session memory</li>
  * </ul>
  */
 @RestController
@@ -87,78 +59,18 @@ public class BabiAgentController {
 
     /**
      * Tracks in-flight requests per session to prevent duplicate message processing.
-     * <p>With fetch+ReadableStream on the frontend (no auto-reconnect), simple in-flight
-     * tracking is sufficient — no time-based dedup window needed.
      */
     private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
     public BabiAgentController(
-            @Value("${babi.agent.workspace:~/babi-workspace}") String workspace,
-            @Value("${agentscope.model.name:qwen-plus}") String modelName) {
-        String resolvedWorkspace = AgentUtils.resolveWorkspace(workspace);
-        Path workspacePath = Path.of(resolvedWorkspace);
-
-        // Ensure workspace directory exists
-        try {
-            Files.createDirectories(workspacePath);
-        } catch (Exception e) {
-            log.warn("Failed to create workspace directory: {}", resolvedWorkspace, e);
-        }
-
-        // Initialize AGENTS.md in workspace if not present (Harness workspace context)
-        AgentUtils.initAgentsMd(workspacePath);
-        log.info("Agent workspace: {}", resolvedWorkspace);
-
-        // Session store
-        Path sessionPath = Paths.get(System.getProperty("user.home"), ".babi", "sessions");
-        this.stateStore = new JsonFileAgentStateStore(sessionPath);
-        log.info("Session store initialized at: {}", sessionPath);
-
-        // Tool event bus for frontend notifications
-        this.toolEventBus = new ToolEventBus();
-        log.info("ToolEventBus initialized");
-
-        // Build HarnessAgent singleton (thread-safe, reusable across sessions)
+            HarnessAgent agent,
+            AgentStateStore stateStore,
+            ToolEventBus toolEventBus,
+            Path workspacePath) {
+        this.agent = agent;
+        this.stateStore = stateStore;
+        this.toolEventBus = toolEventBus;
         this.workspacePath = workspacePath;
-        this.agent = buildHarnessAgent(workspacePath, modelName);
-    }
-
-    private HarnessAgent buildHarnessAgent(Path workspacePath, String modelName) {
-        // Register babi-specific custom tools (HarnessAgent provides read_file/edit_file/execute/grep natively)
-        Toolkit toolkit = new Toolkit();
-        toolkit.registerTool(new FetchUrlTool());
-        toolkit.registerTool(new HttpRequestTool());
-        toolkit.registerTool(new GitHubApiTool());
-        SkillTool skillTool = new SkillTool();
-        toolkit.registerTool(skillTool);
-
-        // Build system prompt with skills info (workspace context like AGENTS.md is auto-injected by Harness)
-        String sysPrompt = CodingSystemPrompt.build(skillTool.getSkills().values());
-
-        return HarnessAgent.builder()
-                .name(AgentUtils.AGENT_NAME)
-                .sysPrompt(sysPrompt)
-                .model(DashScopeChatModel.builder()
-                        .apiKey(System.getenv("DASHSCOPE_API_KEY"))
-                        .modelName(modelName)
-                        .stream(true)
-                        .enableSearch(true)
-                        .build())
-                .toolkit(toolkit)
-                .workspace(workspacePath)
-                .filesystem(new LocalFilesystemSpec().project(workspacePath))
-                .stateStore(stateStore)
-                .maxIters(20)
-                .enableTaskList()
-                .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
-                .disableMemoryTools()          // Not needed for now
-                .disableMemoryHooks()          // Disable MemoryFlush + MemoryMaintenance middleware
-                .disableCompaction()           // We have our own ContextTruncateMiddleware
-                .disableToolResultEviction()   // Not needed — keep tool results in context
-                .enableAgentTracingLog(false)  // Disable AgentTraceMiddleware for performance
-                .middleware(new ContextTruncateMiddleware(30))
-                .middleware(new ToolNotificationMiddleware(toolEventBus))
-                .build();
     }
 
     /**
@@ -167,7 +79,7 @@ public class BabiAgentController {
      * <p>Merges two reactive streams into one SSE output:
      * <ol>
      *   <li><b>toolEvents</b> — tool call notifications from {@link ToolEventBus},
-     *       published by {@link ToolNotificationMiddleware} before each tool execution</li>
+     *       published by ToolNotificationMiddleware before each tool execution</li>
      *   <li><b>agentEvents</b> — text deltas and tool results from {@code agent.streamEvents()}</li>
      * </ol>
      *
