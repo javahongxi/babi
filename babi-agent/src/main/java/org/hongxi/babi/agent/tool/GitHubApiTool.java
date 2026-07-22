@@ -4,6 +4,7 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hongxi.babi.agent.util.AgentUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -11,8 +12,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -126,7 +125,7 @@ public class GitHubApiTool {
             return "Status: "
                     + response.statusCode()
                     + "\nBody:\n"
-                    + truncate(responseBody, 16000);
+                    + AgentUtils.truncate(responseBody, 16000);
 
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -178,11 +177,6 @@ public class GitHubApiTool {
             return "Error: Failed to build GraphQL request: " + e.getMessage();
         }
 
-        // Debug: write JSON to file for troubleshooting
-        try {
-            Files.writeString(Path.of("/tmp/graphql_request.json"), graphql);
-        } catch (Exception ignored) {}
-
         try {
             HttpRequest request =
                     HttpRequest.newBuilder()
@@ -207,7 +201,7 @@ public class GitHubApiTool {
             return "Status: "
                     + response.statusCode()
                     + "\nBody:\n"
-                    + truncate(responseBody, 16000);
+                    + AgentUtils.truncate(responseBody, 16000);
 
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -283,7 +277,6 @@ public class GitHubApiTool {
             if (nodes == null) return null;
             return doFormatPinnedRepos(nodes, username);
         } catch (Exception e) {
-            System.err.println("[DEBUG-GRAPHQL] Failed to format pinned repos: " + e.getMessage());
             return null;
         }
     }
@@ -322,11 +315,6 @@ public class GitHubApiTool {
         return sb.toString().trim();
     }
 
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() > maxLen ? s.substring(0, maxLen) + "\n... (truncated)" : s;
-    }
-
     private static String urlEncode(String s) {
         try {
             return URLEncoder.encode(
@@ -334,18 +322,6 @@ public class GitHubApiTool {
         } catch (Exception e) {
             return s;
         }
-    }
-
-    /**
-     * Escapes a string for safe embedding in a JSON string value.
-     */
-    private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 
     /**
@@ -362,7 +338,7 @@ public class GitHubApiTool {
                 return mapper.writeValueAsString(parsed);
             }
         } catch (Exception e) {
-            System.err.println("[DEBUG-GRAPHQL] Failed to fix GraphQL body: " + e.getMessage());
+            // Failed to fix GraphQL body — return original
         }
         return body;
     }

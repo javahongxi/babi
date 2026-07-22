@@ -36,11 +36,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -108,7 +106,7 @@ public class BabiAgentController {
         }
 
         // Initialize AGENTS.md in workspace if not present (Harness workspace context)
-        initWorkspaceAgentsMd(workspacePath);
+        AgentUtils.initAgentsMd(workspacePath);
         log.info("Agent workspace: {}", resolvedWorkspace);
 
         // Session store
@@ -319,45 +317,6 @@ public class BabiAgentController {
             return Mono.just(Map.of("status", "ok", "message", "Memory cleared for session '" + sessionId + "'"));
         } else {
             return Mono.just(Map.of("status", "ok", "message", "No memory file found for session '" + sessionId + "'"));
-        }
-    }
-
-    /**
-     * Initialize AGENTS.md in the workspace directory if it doesn't exist.
-     * Copies from classpath resource or creates a default one.
-     */
-    private void initWorkspaceAgentsMd(Path workspacePath) {
-        Path agentsMd = workspacePath.resolve("AGENTS.md");
-        if (Files.exists(agentsMd)) {
-            return;
-        }
-        try {
-            // Try loading from classpath resource
-            try (InputStream is = getClass().getResourceAsStream("/workspace/AGENTS.md")) {
-                if (is != null) {
-                    Files.copy(is, agentsMd, StandardCopyOption.REPLACE_EXISTING);
-                    log.info("Initialized AGENTS.md from classpath resource");
-                    return;
-                }
-            }
-            // Fallback: create a minimal AGENTS.md
-            String defaultContent = """
-                    # BabiAgent
-                    
-                    You are BabiAgent, an expert coding assistant powered by AgentScope Java.
-                    
-                    ## Rules
-                    
-                    - When the user provides a URL, ALWAYS call fetch_url FIRST before responding
-                    - For GitHub URLs, use github_api_request (NOT fetch_url)
-                    - NEVER fabricate content from resources you have not accessed via tool
-                    - Be cautious with destructive commands (rm, etc.)
-                    - IMAGE OUTPUT: Wrap image URLs in Markdown syntax for inline rendering
-                    """;
-            Files.writeString(agentsMd, defaultContent);
-            log.info("Created default AGENTS.md in workspace");
-        } catch (IOException e) {
-            log.warn("Failed to initialize AGENTS.md: {}", e.getMessage());
         }
     }
 

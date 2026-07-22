@@ -18,10 +18,8 @@ import org.hongxi.babi.agent.util.AgentUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 /**
  * CLI entry point for the Babi Agent.
@@ -61,7 +59,7 @@ public class BabiAgentCli {
         Files.createDirectories(workspacePath);
 
         // Initialize AGENTS.md in workspace if not present
-        initAgentsMd(workspacePath);
+        AgentUtils.initAgentsMd(workspacePath);
 
         System.out.println("\n" + "=".repeat(60));
         System.out.println("Babi Agent - Powered by AgentScope Java (HarnessAgent)");
@@ -136,40 +134,6 @@ public class BabiAgentCli {
                     })
                     .blockLast();
             System.out.printf("%n%n");
-        }
-    }
-
-    /**
-     * Initialize AGENTS.md in the workspace if it doesn't exist.
-     */
-    private static void initAgentsMd(Path workspacePath) {
-        Path agentsMd = workspacePath.resolve("AGENTS.md");
-        if (Files.exists(agentsMd)) {
-            return;
-        }
-        try {
-            // Try loading from classpath resource
-            try (InputStream is = BabiAgentCli.class.getResourceAsStream("/workspace/AGENTS.md")) {
-                if (is != null) {
-                    Files.copy(is, agentsMd, StandardCopyOption.REPLACE_EXISTING);
-                    return;
-                }
-            }
-            // Fallback: create a minimal AGENTS.md
-            Files.writeString(agentsMd, """
-                    # BabiAgent
-                    
-                    You are BabiAgent, an expert coding assistant powered by AgentScope Java.
-                    
-                    ## Rules
-                    
-                    - When the user provides a URL, ALWAYS call fetch_url FIRST
-                    - For GitHub URLs, use github_api_request (NOT fetch_url)
-                    - NEVER fabricate content from resources you have not accessed
-                    - Be cautious with destructive commands
-                    """);
-        } catch (Exception e) {
-            System.err.println("Warning: Failed to create AGENTS.md: " + e.getMessage());
         }
     }
 }

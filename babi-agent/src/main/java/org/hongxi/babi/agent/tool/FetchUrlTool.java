@@ -2,6 +2,7 @@ package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
+import org.hongxi.babi.agent.util.AgentUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -93,7 +94,7 @@ public class FetchUrlTool {
             if (text.isBlank()) {
                 return "Warning: Page returned empty content. The site may require JavaScript rendering or authentication.";
             }
-            return truncate(text, 30000);
+            return AgentUtils.truncate(text, 30000);
 
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -211,10 +212,5 @@ public class FetchUrlTool {
                 .replace("&laquo;", "«")
                 .replace("&raquo;", "»")
                 .replace("&#x2F;", "/");
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() > maxLen ? s.substring(0, maxLen) + "\n... (truncated)" : s;
     }
 }
