@@ -145,6 +145,7 @@ public class BabiAgentController {
                 .disableMemoryTools()          // Not needed for now
                 .disableCompaction()           // We have our own ContextTruncateMiddleware
                 .disableToolResultEviction()   // Not needed — keep tool results in context
+                .enableAgentTracingLog(false)  // Disable AgentTraceMiddleware for performance
                 .middleware(new ContextTruncateMiddleware(30))
                 .middleware(new ToolNotificationMiddleware(toolEventBus))
                 .build();
