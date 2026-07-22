@@ -1,4 +1,4 @@
-package org.hongxi.babi.agent;
+package org.hongxi.babi.agent.prompt;
 
 import org.hongxi.babi.agent.skill.SkillLoader.Skill;
 
@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * System prompt builder for BabiAgent.
+ * Constructs the system prompt for the coding agent.
  *
  * <p>With HarnessAgent, workspace context (AGENTS.md, MEMORY.md, KNOWLEDGE.md)
  * is automatically injected by the framework. This builder only provides
@@ -19,9 +19,9 @@ import java.util.Collections;
  * {@code src/main/resources/prompts/}). Its content will be appended to the
  * built-in prompt.
  */
-public final class SystemPromptBuilder {
+public final class CodingSystemPrompt {
 
-    private SystemPromptBuilder() {}
+    private CodingSystemPrompt() {}
 
     /**
      * Builds the system prompt with loaded skills.
@@ -169,7 +169,7 @@ public final class SystemPromptBuilder {
      * resource is not found.
      */
     private static String loadCustomInstructions() {
-        try (InputStream is = SystemPromptBuilder.class.getResourceAsStream(
+        try (InputStream is = CodingSystemPrompt.class.getResourceAsStream(
                 "/prompts/custom-instructions.md")) {
             if (is != null) {
                 String content = new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();

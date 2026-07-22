@@ -1,4 +1,4 @@
-package org.hongxi.babi.agent;
+package org.hongxi.babi.agent.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
@@ -13,9 +13,11 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
+import org.hongxi.babi.agent.util.AgentUtils;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
+import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
@@ -122,7 +124,7 @@ public class BabiAgentController {
         toolkit.registerTool(skillTool);
 
         // Build system prompt with skills info (workspace context like AGENTS.md is auto-injected by Harness)
-        String sysPrompt = SystemPromptBuilder.build(skillTool.getSkills().values());
+        String sysPrompt = CodingSystemPrompt.build(skillTool.getSkills().values());
 
         return HarnessAgent.builder()
                 .name(AgentUtils.AGENT_NAME)

@@ -9,10 +9,12 @@ import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
+import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.SkillTool;
+import org.hongxi.babi.agent.util.AgentUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -78,7 +80,7 @@ public class BabiAgentCli {
         toolkit.registerTool(skillTool);
 
         // Build system prompt with skills info
-        String sysPrompt = SystemPromptBuilder.build(skillTool.getSkills().values());
+        String sysPrompt = CodingSystemPrompt.build(skillTool.getSkills().values());
 
         // Build HarnessAgent (auto-creates session store at ~/.agentscope/state/BabiAgent/)
         String modelName = System.getenv().getOrDefault("BABI_MODEL_NAME", "qwen-plus");
