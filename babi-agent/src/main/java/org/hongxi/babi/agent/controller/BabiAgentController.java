@@ -43,8 +43,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Web API for the Babi Agent (WebFlux).
@@ -88,10 +88,11 @@ public class BabiAgentController {
     private final Path workspacePath;
 
     /**
-     * Tracks in-flight requests per session to prevent duplicate message processing
-     * caused by browser EventSource auto-reconnect.
+     * Tracks in-flight requests per session to prevent duplicate message processing.
+     * <p>With fetch+ReadableStream on the frontend (no auto-reconnect), simple in-flight
+     * tracking is sufficient — no time-based dedup window needed.
      */
-    private final ConcurrentMap<String, String> activeSessionMessages = new ConcurrentHashMap<>();
+    private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
     public BabiAgentController(
             @Value("${babi.agent.workspace:~/babi-workspace}") String workspace,
@@ -181,14 +182,14 @@ public class BabiAgentController {
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
-        // Deduplication: reject if the same session already has an in-flight request
-        // with the same message (caused by EventSource auto-reconnect)
-        String dedupKey = sessionId + ":" + message;
-        String existing = activeSessionMessages.putIfAbsent(sessionId, dedupKey);
-        if (existing != null && existing.equals(dedupKey)) {
-            log.debug("Rejecting duplicate request for session={}, message={}", sessionId, message);
+        log.info(">>> streamChat request: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
+
+        // Deduplication: reject if this session already has an in-flight request
+        if (!activeSessions.add(sessionId)) {
+            log.warn(">>> DUPLICATE request rejected: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
             return Flux.just(sse("done", Map.of("type", "done", "duplicate", true)));
         }
+        log.info(">>> Request accepted, starting agent for session='{}'", sessionId);
 
         RuntimeContext ctx = RuntimeContext.builder()
                 .sessionId(sessionId)
@@ -246,10 +247,15 @@ public class BabiAgentController {
         }).subscribeOn(Schedulers.boundedElastic());
 
         // 3. 合并两路流 — Agent 完成时 toolEvents 也自动结束
+        // IMPORTANT: agentEvents must be shared() to avoid double subscription.
+        // Flux.create is cold — each subscription triggers a new agent invocation.
+        // Without share(), Flux.merge subscribes twice (once directly, once via
+        // takeUntilOther's agentEvents.then()), causing duplicate message processing.
+        Flux<ServerSentEvent<String>> sharedAgentEvents = agentEvents.share();
         return Flux.merge(
-                toolEvents.takeUntilOther(agentEvents.then()),
-                agentEvents
-        ).doFinally(sig -> activeSessionMessages.remove(sessionId));
+                toolEvents.takeUntilOther(sharedAgentEvents.then()),
+                sharedAgentEvents
+        ).doFinally(sig -> activeSessions.remove(sessionId));
     }
 
     /**
@@ -263,11 +269,9 @@ public class BabiAgentController {
     public Mono<String> sendChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
-        // Deduplication guard for synchronous endpoint
-        String dedupKey = sessionId + ":" + message;
-        String existing = activeSessionMessages.putIfAbsent(sessionId, dedupKey);
-        if (existing != null && existing.equals(dedupKey)) {
-            log.debug("Rejecting duplicate send for session={}, message={}", sessionId, message);
+        // Deduplication guard: reject if session already has an in-flight request
+        if (!activeSessions.add(sessionId)) {
+            log.debug("Rejecting duplicate send for session={}", sessionId);
             return Mono.just("");
         }
         RuntimeContext ctx = RuntimeContext.builder()
@@ -276,7 +280,7 @@ public class BabiAgentController {
         Msg userMsg = new UserMessage(message);
         return agent.call(userMsg, ctx)
                 .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "")
-                .doFinally(sig -> activeSessionMessages.remove(sessionId));
+                .doFinally(sig -> activeSessions.remove(sessionId));
     }
 
     /**
@@ -289,7 +293,7 @@ public class BabiAgentController {
     public Mono<Map<String, String>> deleteSession(
             @RequestParam String sessionId) {
         stateStore.delete(null, sessionId);
-        activeSessionMessages.remove(sessionId);
+        activeSessions.remove(sessionId);
         log.info("Session deleted: {}", sessionId);
         return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted"));
     }
