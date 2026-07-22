@@ -99,12 +99,12 @@ public class BabiAgentController {
 
         // Initialize AGENTS.md in workspace if not present (Harness workspace context)
         initWorkspaceAgentsMd(workspacePath);
+        log.info("Agent workspace: {}", resolvedWorkspace);
 
         // Session store
         Path sessionPath = Paths.get(System.getProperty("user.home"), ".babi", "sessions");
         this.stateStore = new JsonFileAgentStateStore(sessionPath);
         log.info("Session store initialized at: {}", sessionPath);
-        log.info("Agent workspace: {}", resolvedWorkspace);
 
         // Tool event bus for frontend notifications
         this.toolEventBus = new ToolEventBus();
@@ -143,6 +143,7 @@ public class BabiAgentController {
                 .enableTaskList()
                 .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
                 .disableMemoryTools()          // Not needed for now
+                .disableMemoryHooks()          // Disable MemoryFlush + MemoryMaintenance middleware
                 .disableCompaction()           // We have our own ContextTruncateMiddleware
                 .disableToolResultEviction()   // Not needed — keep tool results in context
                 .enableAgentTracingLog(false)  // Disable AgentTraceMiddleware for performance
