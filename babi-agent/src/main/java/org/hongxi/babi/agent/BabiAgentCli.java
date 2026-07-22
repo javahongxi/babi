@@ -100,6 +100,7 @@ public class BabiAgentCli {
                 .enableTaskList()
                 .disableDynamicSkills()
                 .disableMemoryTools()
+                .disableMemoryHooks()
                 .disableCompaction()           // We have our own ContextTruncateMiddleware
                 .disableToolResultEviction()   // Not needed — keep tool results in context
                 .enableAgentTracingLog(false)  // Disable AgentTraceMiddleware for performance
