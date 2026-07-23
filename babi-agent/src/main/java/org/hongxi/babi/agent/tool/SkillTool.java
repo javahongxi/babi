@@ -14,6 +14,7 @@ import java.util.Map;
  * <ul>
  *   <li>{@code ~/.agents/skills/} — global shared skills</li>
  *   <li>{@code ~/.babi/skills/}   — Babi-specific skills (higher priority)</li>
+ *   <li>{@code .qoder/skills/}    — project-level skills (highest priority)</li>
  * </ul>
  *
  * <p>The agent calls {@code list_skills} to see what's available, then
@@ -37,7 +38,7 @@ public class SkillTool {
     @Tool(name = "list_skills", description = "List all available skills. Returns skill names and descriptions. Call this before use_skill to discover what skills are available.", readOnly = true)
     public String listSkills() {
         if (skills.isEmpty()) {
-            return "No skills found. Create .md files in ~/.agents/skills/ or ~/.babi/skills/ to add skills.";
+            return "No skills found. Create .md files in ~/.agents/skills/, ~/.babi/skills/, or .qoder/skills/ to add skills.";
         }
 
         StringBuilder sb = new StringBuilder();

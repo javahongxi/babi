@@ -229,6 +229,16 @@ class SkillLoaderTest {
     }
 
     // -----------------------------------------------------------------
+    // loadAll — project-level skills (via cwd)
+    // -----------------------------------------------------------------
+
+    @Test
+    void loadAll_noQoderDir_noError() {
+        // When cwd has no .qoder/skills, loadAll should not throw
+        assertDoesNotThrow(() -> SkillLoader.loadAll());
+    }
+
+    // -----------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------
 

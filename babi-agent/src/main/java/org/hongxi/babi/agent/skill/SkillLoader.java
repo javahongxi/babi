@@ -11,14 +11,15 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Loads Skill definitions from two directories:
+ * Loads Skill definitions from three directories:
  * <ol>
  *   <li>{@code ~/.agents/skills/} — global shared skills (cross-project reuse)</li>
  *   <li>{@code ~/.babi/skills/}   — Babi-specific skills (higher priority)</li>
+ *   <li>{@code .qoder/skills/}    — project-level skills (highest priority, relative to project root)</li>
  * </ol>
  *
- * <p>When both directories contain a skill with the same name, the Babi-specific
- * one wins (project-level override).
+ * <p>When multiple directories contain a skill with the same name, the one with
+ * higher priority wins (project-level > Babi-specific > global).
  *
  * <p>Skill file format (Markdown with YAML front-matter):
  * <pre>
@@ -38,24 +39,36 @@ public final class SkillLoader {
     private static final Path GLOBAL_DIR = Path.of(System.getProperty("user.home"), ".agents", "skills");
     private static final Path BABI_DIR   = Path.of(System.getProperty("user.home"), ".babi",  "skills");
 
+    /** Project-level skills directory name (relative to project root) */
+    private static final String PROJECT_SKILLS_DIR = ".qoder/skills";
+
     private SkillLoader() {}
 
     /**
-     * Loads all skills from both directories. Babi-dir skills override global-dir
-     * skills with the same name.
+     * Loads all skills from global, Babi-specific, and project-level directories.
+     * Project-level skills have the highest priority and override skills with
+     * the same name from global/Babi directories.
+     *
+     * <p>The project root is resolved from {@code user.dir} system property
+     * (current working directory).
      *
      * @return unmodifiable map of skill-name → {@link Skill}
      */
     public static Map<String, Skill> loadAll() {
         Map<String, Skill> skills = new LinkedHashMap<>();
 
-        // 1. Global skills first (lower priority)
+        // 1. Global skills first (lowest priority)
         loadFromDir(GLOBAL_DIR, skills);
 
-        // 2. Babi-specific skills (higher priority, overrides global)
+        // 2. Babi-specific skills (medium priority, overrides global)
         loadFromDir(BABI_DIR, skills);
 
-        log.info("Loaded {} skill(s) from {} and {}", skills.size(), GLOBAL_DIR, BABI_DIR);
+        // 3. Project-level skills from cwd (highest priority)
+        Path projectSkillsDir = Path.of(System.getProperty("user.dir"))
+                .toAbsolutePath().normalize().resolve(PROJECT_SKILLS_DIR);
+        loadFromDir(projectSkillsDir, skills);
+
+        log.info("Loaded {} skill(s) from {}, {}, and {}", skills.size(), GLOBAL_DIR, BABI_DIR, projectSkillsDir);
         return Collections.unmodifiableMap(skills);
     }
 
