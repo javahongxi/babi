@@ -45,9 +45,9 @@ mvn spring-boot:run -pl babi-agent
 # 一键安装（构建 + 配置环境变量，之后终端直接输入 babi 启动）
 ./install.sh
 
-# 安装后使用
-babi                            # 默认启动
-babi --workspace ~/my-project   # 指定工作目录
+# 安装后使用（默认以当前目录为工作区）
+babi                            # 启动 Babi Agent
+babi --workspace ~/other-project # 指定其他工作区（可选）
 ```
 
 > 开发调试时也可直接运行：`mvn exec:java -pl babi-agent`
