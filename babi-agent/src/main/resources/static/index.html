@@ -211,6 +211,7 @@
         const sessionIdInput = document.getElementById('session-id');
         // All stream state is local to sendMessage() — no globals needed
         let isSending = false; // Guard against EventSource auto-reconnect duplicates
+        let lastSessionId = sessionIdInput.value.trim() || 'default'; // Track session ID to detect changes
 
         // Configure marked
         if (typeof marked !== 'undefined') {
@@ -232,6 +233,15 @@
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
 
+        // Clear chat when session ID changes and textarea gets focus
+        userInput.addEventListener('focus', function() {
+            const currentSession = sessionIdInput.value.trim() || 'default';
+            if (currentSession !== lastSessionId) {
+                chatInner.innerHTML = '';
+                lastSessionId = currentSession;
+            }
+        });
+
         // Enter to send, Shift+Enter for newline
         userInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -243,6 +253,7 @@
         function clearChat() {
             chatInner.innerHTML = '';
             const sessionId = sessionIdInput.value.trim() || 'default';
+            lastSessionId = sessionId;
             // Delete session file on server
             fetch('/api/chat/session?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' })
                 .then(r => r.json())
@@ -469,6 +480,7 @@
             isSending = true;
 
             const sessionId = sessionIdInput.value.trim() || 'default';
+            lastSessionId = sessionId;
             addMessage('user', message);
             userInput.value = '';
             userInput.style.height = 'auto';
