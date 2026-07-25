@@ -61,7 +61,7 @@ Skills 是 Markdown 格式的可复用工作流指令，从以下目录自动加
 |--------|------|------|
 | 低 | `~/.agents/skills/` | 全局共享 Skills |
 | 中 | `~/.babi/skills/` | Babi 专属 Skills |
-| 高 | `.qoder/skills/` | 项目级 Skills（相对于工作区根目录） |
+| 高 | `{workspace}/.qoder/skills/` | 项目级 Skills（相对于工作区根目录） |
 
 支持两种文件格式：
 - **单文件**：`my-skill.md`

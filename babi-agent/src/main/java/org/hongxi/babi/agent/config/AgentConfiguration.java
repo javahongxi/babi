@@ -103,7 +103,7 @@ public class AgentConfiguration {
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
-        SkillTool skillTool = new SkillTool();
+        SkillTool skillTool = new SkillTool(workspacePath);
         toolkit.registerTool(skillTool);
 
         // Build system prompt with workspace info and skills

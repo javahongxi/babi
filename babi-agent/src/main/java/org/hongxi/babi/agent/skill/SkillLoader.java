@@ -49,12 +49,14 @@ public final class SkillLoader {
      * Project-level skills have the highest priority and override skills with
      * the same name from global/Babi directories.
      *
-     * <p>The project root is resolved from {@code user.dir} system property
-     * (current working directory).
+     * <p>The project-level skills directory is resolved as
+     * {@code {workspacePath}/.qoder/skills/}, ensuring consistent behavior
+     * across both CLI and Web modes.
      *
+     * @param workspacePath the absolute path of the current workspace
      * @return unmodifiable map of skill-name → {@link Skill}
      */
-    public static Map<String, Skill> loadAll() {
+    public static Map<String, Skill> loadAll(Path workspacePath) {
         Map<String, Skill> skills = new LinkedHashMap<>();
 
         // 1. Global skills first (lowest priority)
@@ -63,9 +65,8 @@ public final class SkillLoader {
         // 2. Babi-specific skills (medium priority, overrides global)
         loadFromDir(BABI_DIR, skills);
 
-        // 3. Project-level skills from cwd (highest priority)
-        Path projectSkillsDir = Path.of(System.getProperty("user.dir"))
-                .toAbsolutePath().normalize().resolve(PROJECT_SKILLS_DIR);
+        // 3. Project-level skills from workspace root (highest priority)
+        Path projectSkillsDir = workspacePath.toAbsolutePath().normalize().resolve(PROJECT_SKILLS_DIR);
         loadFromDir(projectSkillsDir, skills);
 
         log.info("Loaded {} skill(s) from {}, {}, and {}", skills.size(), GLOBAL_DIR, BABI_DIR, projectSkillsDir);

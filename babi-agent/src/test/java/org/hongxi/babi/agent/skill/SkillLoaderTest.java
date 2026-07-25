@@ -229,13 +229,32 @@ class SkillLoaderTest {
     }
 
     // -----------------------------------------------------------------
-    // loadAll — project-level skills (via cwd)
+    // loadAll — project-level skills (via workspacePath)
     // -----------------------------------------------------------------
 
     @Test
     void loadAll_noQoderDir_noError() {
-        // When cwd has no .qoder/skills, loadAll should not throw
-        assertDoesNotThrow(() -> SkillLoader.loadAll());
+        // When workspace has no .qoder/skills, loadAll should not throw
+        assertDoesNotThrow(() -> SkillLoader.loadAll(tempDir));
+    }
+
+    @Test
+    void loadAll_workspaceWithQoderSkills() throws IOException {
+        // Create workspace/.qoder/skills/ with a skill file
+        Path skillsDir = tempDir.resolve(".qoder").resolve("skills");
+        Files.createDirectories(skillsDir);
+        writeFile(skillsDir.resolve("test-skill.md"), """
+                ---
+                name: test-skill
+                description: A workspace-level skill
+                ---
+                Skill body.
+                """);
+
+        Map<String, Skill> skills = SkillLoader.loadAll(tempDir);
+
+        assertTrue(skills.containsKey("test-skill"));
+        assertEquals("A workspace-level skill", skills.get("test-skill").description());
     }
 
     // -----------------------------------------------------------------
@@ -243,7 +262,11 @@ class SkillLoaderTest {
     // -----------------------------------------------------------------
 
     private Path writeFile(String name, String content) throws IOException {
-        Path file = tempDir.resolve(name);
+        return writeFile(tempDir.resolve(name), content);
+    }
+
+    private Path writeFile(Path file, String content) throws IOException {
+        Files.createDirectories(file.getParent());
         Files.writeString(file, content, StandardCharsets.UTF_8);
         return file;
     }

@@ -5,6 +5,7 @@ import io.agentscope.core.tool.ToolParam;
 import org.hongxi.babi.agent.skill.SkillLoader;
 import org.hongxi.babi.agent.skill.SkillLoader.Skill;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -14,7 +15,7 @@ import java.util.Map;
  * <ul>
  *   <li>{@code ~/.agents/skills/} — global shared skills</li>
  *   <li>{@code ~/.babi/skills/}   — Babi-specific skills (higher priority)</li>
- *   <li>{@code .qoder/skills/}    — project-level skills (highest priority)</li>
+ *   <li>{@code {workspace}/.qoder/skills/} — project-level skills (highest priority)</li>
  * </ul>
  *
  * <p>The agent calls {@code list_skills} to see what's available, then
@@ -24,8 +25,8 @@ public class SkillTool {
 
     private final Map<String, Skill> skills;
 
-    public SkillTool() {
-        this.skills = SkillLoader.loadAll();
+    public SkillTool(Path workspacePath) {
+        this.skills = SkillLoader.loadAll(workspacePath);
     }
 
     /**
