@@ -8,6 +8,7 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
+import io.agentscope.harness.agent.workspace.LocalFsMode;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
@@ -94,7 +95,11 @@ public class BabiAgentCli {
                         .build())
                 .toolkit(toolkit)
                 .workspace(workspacePath)
-                .filesystem(new LocalFilesystemSpec().project(workspacePath))
+                .filesystem(new LocalFilesystemSpec()
+                        .project(workspacePath)
+                        // Default ROOTED mode restricts file access to workspace only;
+                        // UNRESTRICTED allows reading/writing any local file path
+                        .mode(LocalFsMode.UNRESTRICTED))
                 .maxIters(20)
                 .maxRetries(2)              // Tool calls retry up to 2 times on failure
                 .fallbackModel(fallbackModel)  // Auto-fallback when primary model is unavailable
