@@ -13,7 +13,7 @@
 - **Web 搜索** — 模型内置联网检索，实时获取最新信息（无需额外 API Key）
 - **HTTP 请求** — 调用任意 REST API
 - **GitHub 集成** — 通过 API 操作 Issues、PR、仓库、Pinned Repos 等
-- **Skills 扩展** — Markdown 定义的可复用工作流指令，支持全局与项目级加载
+- **Skills 扩展** — Markdown 定义的可复用工作流指令，支持全局、Babi 专属、项目级三级加载
 - **任务追踪** — 内置 Todo 列表，可视化多步骤任务进度
 - **双端交互** — Web 聊天界面（Markdown 渲染 + 工具状态可视化）与 CLI 两种模式
 
@@ -51,5 +51,25 @@ babi --workspace ~/other-project # 指定其他工作区（可选）
 ```
 
 > 开发调试时也可直接运行：`mvn exec:java -pl babi-agent`
+
+## Skills 扩展
+
+Skills 是 Markdown 格式的可复用工作流指令，从以下目录自动加载（后者覆盖前者）：
+
+| 优先级 | 目录 | 说明 |
+|--------|------|------|
+| 低 | `~/.agents/skills/` | 全局共享 Skills |
+| 中 | `~/.babi/skills/` | Babi 专属 Skills |
+| 高 | `.qoder/skills/` | 项目级 Skills（相对于工作区根目录） |
+
+支持两种文件格式：
+- **单文件**：`my-skill.md`
+- **目录格式**：`my-skill/SKILL.md`
+
+## 卸载
+
+```bash
+./uninstall.sh
+```
 
 &copy; [hongxi.org](http://hongxi.org)
