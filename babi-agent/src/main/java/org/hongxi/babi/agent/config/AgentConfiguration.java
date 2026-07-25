@@ -105,8 +105,8 @@ public class AgentConfiguration {
         SkillTool skillTool = new SkillTool();
         toolkit.registerTool(skillTool);
 
-        // Build system prompt with skills info
-        String sysPrompt = CodingSystemPrompt.build(skillTool.getSkills().values());
+        // Build system prompt with workspace info and skills
+        String sysPrompt = CodingSystemPrompt.build(workspacePath.toString(), skillTool.getSkills().values());
 
         return HarnessAgent.builder()
                 .name(AgentUtils.AGENT_NAME)

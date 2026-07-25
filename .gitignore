@@ -43,3 +43,4 @@ maven-eclipse.xml
 
 # vscode ignore
 .vscode
+/output/

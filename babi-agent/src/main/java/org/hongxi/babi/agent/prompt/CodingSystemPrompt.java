@@ -24,13 +24,15 @@ public final class CodingSystemPrompt {
     private CodingSystemPrompt() {}
 
     /**
-     * Builds the system prompt with loaded skills.
+     * Builds the system prompt with loaded skills and workspace info.
      *
-     * @param skills the collection of loaded skills (maybe empty)
+     * @param workspace the absolute path of the current workspace
+     * @param skills    the collection of loaded skills (maybe empty)
      */
-    public static String build(Collection<Skill> skills) {
+    public static String build(String workspace, Collection<Skill> skills) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
+                workspaceSection(workspace),
                 coreRulesSection(),
                 githubSection(),
                 skillsSection(skills),
@@ -40,15 +42,39 @@ public final class CodingSystemPrompt {
     }
 
     /**
-     * Builds the system prompt with no skills.
+     * Builds the system prompt with no skills (backward compatibility).
      */
     public static String build() {
-        return build(Collections.emptyList());
+        return build(System.getProperty("user.dir"), Collections.emptyList());
     }
 
     // -----------------------------------------------------------------
     //  Sections
     // -----------------------------------------------------------------
+
+    private static String workspaceSection(String workspace) {
+        return """
+                === WORKSPACE CONTEXT (HIGHEST PRIORITY) ===
+                Your current workspace is: %s
+
+                This is the default working directory — use it as the base for relative paths,
+                git operations, and project-level context.
+
+                FILE ACCESS:
+                - You CAN read and access files anywhere on the local filesystem, not just
+                  within the workspace. There is no sandbox restriction.
+                - When modifying files OUTSIDE the workspace, confirm with the user first
+                  to avoid unintended side effects on other projects or system files.
+
+                CRITICAL — WORKSPACE IDENTITY:
+                - NEVER report a workspace path from conversation history or memory.
+                - NEVER assume the workspace is a previous session's directory.
+                - If the user asks "what is the current directory/workspace?", respond with
+                  the path above. Do NOT guess, do NOT recall — use THIS value.
+                - Each session may have a DIFFERENT workspace. Always trust this system-level
+                  context over any prior conversation.
+                """.formatted(workspace);
+    }
 
     private static String coreRulesSection() {
         return """
@@ -116,9 +142,10 @@ public final class CodingSystemPrompt {
         sb.append("""
                 SKILLS SYSTEM:
                 Skills are reusable workflow instructions stored as Markdown files.
-                They are loaded from two directories:
-                - ~/.agents/skills/ — global shared skills (cross-project reuse)
-                - ~/.babi/skills/   — Babi-specific skills (higher priority, overrides global)
+                They are loaded from three directories (lowest to highest priority):
+                - ~/.agents/skills/    — global shared skills (cross-project reuse)
+                - ~/.babi/skills/      — Babi-specific skills (overrides global)
+                - .qoder/skills/       — project-level skills (highest priority, relative to workspace root)
 
                 IMPORTANT: When the user's request matches ANY of the skills below, you MUST
                 call use_skill(skill_name) FIRST to load the full instructions, then follow them.
