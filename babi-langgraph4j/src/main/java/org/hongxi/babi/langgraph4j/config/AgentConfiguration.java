@@ -18,6 +18,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Spring configuration that assembles the LangGraph4J Agent infrastructure.
@@ -69,10 +71,16 @@ public class AgentConfiguration {
         var shellCommandTool = new ShellCommandTool(workspacePath.toString(), toolEventBus);
         var codeSearchTool = new CodeSearchTool(toolEventBus);
         var skillTool = new SkillTool(workspacePath);
+        var webSearchTool = new WebSearchTool(toolEventBus);
 
         // Build system prompt
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(), skillTool.getSkills().values());
+
+        // LangGraph4J does not inject runtime state like AgentScope does,
+        // so append the current date/time to the system prompt explicitly.
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        sysPrompt += "\n\nCurrent date and time: " + now;
 
         // Build and compile the agent graph
         var graph = AgentExecutor.builder()
@@ -86,6 +94,7 @@ public class AgentConfiguration {
                 .toolsFromObject(shellCommandTool)
                 .toolsFromObject(codeSearchTool)
                 .toolsFromObject(skillTool)
+                .toolsFromObject(webSearchTool)
                 .build();
 
         var compileConfig = org.bsc.langgraph4j.CompileConfig.builder()

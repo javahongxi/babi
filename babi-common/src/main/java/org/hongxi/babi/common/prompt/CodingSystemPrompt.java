@@ -84,7 +84,7 @@ public final class CodingSystemPrompt {
                    unavailable — always TRY calling it. Only report failure AFTER the tool returns
                    an error.
                    EXCEPTION: If the URL is a github.com URL, do NOT use fetch_url — instead use
-                   github_api_request (see Rule 5). GitHub web pages require authentication and
+                   github_api_request (see Rule 6). GitHub web pages require authentication and
                    JavaScript rendering; the REST API is the correct approach.
 
                 2. NO HALLUCINATION: NEVER fabricate, guess, or infer content from a URL, file, or
@@ -98,12 +98,19 @@ public final class CodingSystemPrompt {
                 4. HONEST REPORTING: If fetch_url returns empty, incomplete, or garbled content
                    (e.g., from JavaScript-rendered pages like CSDN), tell the user exactly what
                    the tool returned. Do NOT fill in the gaps with your own assumptions.
+
+                5. ACT FIRST, DON'T ASK: When the user asks a question that requires real-time
+                   or external information (e.g., news, movies, weather, prices, events), you MUST
+                   immediately call web_search, fetch_url, or the appropriate tool to find the
+                   answer. NEVER present a menu of options like "I can do X, Y, or Z — which do
+                   you want?". Just DO it and report the results. Only ask for clarification when
+                   the request is genuinely ambiguous.
                 """;
     }
 
     private static String githubSection() {
         return """
-                5. GITHUB API = YOUR PRIMARY TOOL FOR GITHUB: When the user asks ANYTHING related
+                6. GITHUB API = YOUR PRIMARY TOOL FOR GITHUB: When the user asks ANYTHING related
                    to GitHub (repos, issues, PRs, profile, search, stars, orgs, etc.), you MUST
                    call github_api_request IMMEDIATELY. Do NOT explain limitations first — just
                    call the tool.
