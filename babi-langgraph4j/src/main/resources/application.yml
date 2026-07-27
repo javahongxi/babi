@@ -1,0 +1,12 @@
+server:
+  port: 8904
+
+spring:
+  application:
+    name: babi-langgraph4j
+
+babi:
+  agent:
+    workspace: ~/babi-workspace
+    model:
+      name: qwen-plus

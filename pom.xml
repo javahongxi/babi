@@ -18,10 +18,13 @@
 
     <modules>
         <module>babi-agent</module>
+        <module>babi-langgraph4j</module>
     </modules>
 
     <properties>
         <agentscope.version>2.0.0</agentscope.version>
+        <langgraph4j.version>1.8.20</langgraph4j.version>
+        <langchain4j.version>1.18.0</langchain4j.version>
     </properties>
 
     <build>
