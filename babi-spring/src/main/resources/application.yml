@@ -1,0 +1,16 @@
+server:
+  port: 8902
+
+spring:
+  application:
+    name: babi-spring
+  ai:
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:}
+      chat:
+        model: deepseek-v4-flash
+        temperature: 0.7
+
+babi:
+  agent:
+    workspace: ~/babi-workspace
