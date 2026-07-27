@@ -2,7 +2,14 @@
 
 面向开发者的 AI Coding Agent，基于 ReAct 模式提供代码分析、构建、调试等开发辅助能力。
 
-> 技术栈：AgentScope Java 2.0.0 + Spring Boot 4.1.0
+本项目包含两个 Java 实现版本：
+
+| 模块 | 技术栈 | 定位 |
+|------|--------|------|
+| **babi-agent** | AgentScope Java 2.0.0 + Spring Boot 4.1.0 | 主版本，功能完整 |
+| **babi-langgraph4j** | LangGraph4j 1.8.20 + Spring Boot 4.1.0 | 替代实现，基于图编排 |
+
+> 两个版本共享相同的工具能力与交互体验，可根据技术偏好选择使用。
 
 ## 特性
 
@@ -33,10 +40,14 @@ export GITHUB_TOKEN=your_github_token
 ### Web 聊天界面（推荐）
 
 ```bash
+# AgentScope 版本（主版本）
 mvn spring-boot:run -pl babi-agent
+
+# LangGraph4j 版本
+mvn spring-boot:run -pl babi-langgraph4j
 ```
 
-打开浏览器访问 `http://localhost:8900`，即可在聊天界面中与 Babi Agent 交互。
+打开浏览器访问 `http://localhost:8900`（AgentScope）或 `http://localhost:8904`（LangGraph4j），即可在聊天界面中与 Babi Agent 交互。
 
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
 
