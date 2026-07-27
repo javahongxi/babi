@@ -1,10 +1,14 @@
-package org.hongxi.babi.langgraph4j.tool;
+package org.hongxi.babi.common.tool;
 
 import java.net.URI;
 
 /**
  * Shared utility to detect github.com web URLs and suggest using
  * {@code github_api_request} with the correct REST API path instead.
+ *
+ * <p>GitHub web pages require authentication and JavaScript rendering,
+ * so fetch_url / http_request cannot extract useful content from them.
+ * The GitHub REST API (api.github.com) is the correct approach.
  */
 public final class GitHubUrlChecker {
 
@@ -19,14 +23,17 @@ public final class GitHubUrlChecker {
         if (url == null) return null;
         String lower = url.toLowerCase();
         if (!lower.contains("github.com")) return null;
+        // Skip if it's already an API URL
         if (lower.contains("api.github.com")) return null;
 
+        // Extract path after github.com/
         String path = "";
         try {
             URI uri = URI.create(url);
             path = uri.getPath();
             if (path == null) path = "";
         } catch (Exception e) {
+            // fallback: extract path manually
             int idx = lower.indexOf("github.com");
             if (idx >= 0) {
                 path = url.substring(idx + "github.com".length());
@@ -35,11 +42,14 @@ public final class GitHubUrlChecker {
             }
         }
 
+        // Parse the path segments
         String[] segments = path.split("/");
+        // segments[0] is empty (before leading /)
         String user = segments.length > 1 ? segments[1] : "";
         String repo = segments.length > 2 ? segments[2] : "";
         String sub = segments.length > 3 ? segments[3] : "";
 
+        // Build suggestion
         StringBuilder sb = new StringBuilder();
         sb.append("[REDIRECT] github.com URLs cannot be fetched as web pages ");
         sb.append("(GitHub requires authentication and JavaScript rendering).\n");

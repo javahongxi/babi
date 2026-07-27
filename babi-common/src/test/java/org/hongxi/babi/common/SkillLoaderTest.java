@@ -1,8 +1,9 @@
-package org.hongxi.babi.agent.skill;
+package org.hongxi.babi.common;
 
+import org.hongxi.babi.common.skill.SkillLoader;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.hongxi.babi.agent.skill.SkillLoader.Skill;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.hongxi.babi.common.skill.SkillLoader.Skill;
 
 class SkillLoaderTest {
 
@@ -39,7 +41,7 @@ class SkillLoaderTest {
         assertEquals("Perform structured code review", skill.description());
         assertTrue(skill.body().contains("# Instructions"));
         assertFalse(skill.body().startsWith("---"));
-        assertNull(skill.directory()); // flat file → no directory
+        Assertions.assertNull(skill.directory()); // flat file → no directory
     }
 
     @Test
@@ -118,7 +120,7 @@ class SkillLoaderTest {
         assertEquals("overridden-name", skill.name());
         assertEquals("Dir-based skill", skill.description());
         // directory should point to the skill root dir
-        assertNotNull(skill.directory());
+        Assertions.assertNotNull(skill.directory());
         assertTrue(skill.directory().toString().endsWith("my-cool-skill"));
     }
 
@@ -145,8 +147,8 @@ class SkillLoaderTest {
         Path skillMd = tempDir.resolve("some-skill/SKILL.md");
         Path result = SkillLoader.skillDirectory(skillMd);
 
-        assertNotNull(result);
-        assertTrue(result.toString().endsWith("some-skill"));
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.toString().endsWith("some-skill"));
     }
 
     @Test
@@ -154,7 +156,7 @@ class SkillLoaderTest {
         Path flatFile = tempDir.resolve("my-skill.md");
         Path result = SkillLoader.skillDirectory(flatFile);
 
-        assertNull(result);
+        Assertions.assertNull(result);
     }
 
     // -----------------------------------------------------------------
@@ -235,7 +237,7 @@ class SkillLoaderTest {
     @Test
     void loadAll_noQoderDir_noError() {
         // When workspace has no .qoder/skills, loadAll should not throw
-        assertDoesNotThrow(() -> SkillLoader.loadAll(tempDir));
+        Assertions.assertDoesNotThrow(() -> SkillLoader.loadAll(tempDir));
     }
 
     @Test
@@ -253,7 +255,7 @@ class SkillLoaderTest {
 
         Map<String, Skill> skills = SkillLoader.loadAll(tempDir);
 
-        assertTrue(skills.containsKey("test-skill"));
+        Assertions.assertTrue(skills.containsKey("test-skill"));
         assertEquals("A workspace-level skill", skills.get("test-skill").description());
     }
 

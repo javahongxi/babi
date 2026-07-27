@@ -1,6 +1,6 @@
-package org.hongxi.babi.agent.prompt;
+package org.hongxi.babi.common.prompt;
 
-import org.hongxi.babi.agent.skill.SkillLoader.Skill;
+import org.hongxi.babi.common.skill.SkillLoader.Skill;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -10,9 +10,8 @@ import java.util.Collections;
 /**
  * Constructs the system prompt for the coding agent.
  *
- * <p>With HarnessAgent, workspace context (AGENTS.md, MEMORY.md, KNOWLEDGE.md)
- * is automatically injected by the framework. This builder only provides
- * babi-specific rules and custom tool guidance that go beyond the workspace context.
+ * <p>This shared prompt builder provides babi-specific rules and custom tool
+ * guidance. It is used by both AgentScope and LangGraph4j implementations.
  *
  * <p>To customize the prompt without recompiling, place a file at
  * {@code prompts/custom-instructions.md} on the classpath (e.g. under

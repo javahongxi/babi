@@ -10,12 +10,12 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.workspace.LocalFsMode;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
-import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
+import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.agent.tool.FetchUrlTool;
 import org.hongxi.babi.agent.tool.GitHubApiTool;
 import org.hongxi.babi.agent.tool.HttpRequestTool;
 import org.hongxi.babi.agent.tool.SkillTool;
-import org.hongxi.babi.agent.util.AgentUtils;
+import org.hongxi.babi.common.util.AgentUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

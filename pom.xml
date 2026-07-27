@@ -17,6 +17,7 @@
     <url>https://github.com/javahongxi/babi</url>
 
     <modules>
+        <module>babi-common</module>
         <module>babi-agent</module>
         <module>babi-langgraph4j</module>
     </modules>

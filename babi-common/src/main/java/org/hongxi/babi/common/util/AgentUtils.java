@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.util;
+package org.hongxi.babi.common.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Shared constants and utilities for BabiAgent.
+ * Shared constants and utilities for Babi Agent modules.
  */
 public final class AgentUtils {
 
@@ -23,6 +23,9 @@ public final class AgentUtils {
     /**
      * Resolves a workspace path string, expanding {@code ~} to user.home
      * and converting relative paths to absolute.
+     *
+     * @param raw the workspace string (maybe {@code ~} or relative)
+     * @return resolved absolute path string
      */
     public static String resolveWorkspace(String raw) {
         String expanded = raw.startsWith("~")
@@ -33,6 +36,11 @@ public final class AgentUtils {
 
     /**
      * Truncates a string to the given maximum length.
+     * Appends a "... (truncated)" marker if the string exceeds {@code maxLen}.
+     *
+     * @param s      the string to truncate
+     * @param maxLen maximum allowed length
+     * @return the (possibly truncated) string
      */
     public static String truncate(String s, int maxLen) {
         if (s == null) return "";
@@ -41,6 +49,10 @@ public final class AgentUtils {
 
     /**
      * Initialize AGENTS.md in the workspace directory if it doesn't exist.
+     * Tries to copy from classpath resource {@code /workspace/AGENTS.md},
+     * falls back to creating a minimal default.
+     *
+     * @param workspacePath the workspace directory
      */
     public static void initAgentsMd(Path workspacePath) {
         Path agentsMd = workspacePath.resolve("AGENTS.md");
@@ -48,6 +60,7 @@ public final class AgentUtils {
             return;
         }
         try {
+            // Try loading from classpath resource
             try (InputStream is = AgentUtils.class.getResourceAsStream("/workspace/AGENTS.md")) {
                 if (is != null) {
                     Files.copy(is, agentsMd, StandardCopyOption.REPLACE_EXISTING);
@@ -55,10 +68,11 @@ public final class AgentUtils {
                     return;
                 }
             }
+            // Fallback: create a minimal AGENTS.md
             String defaultContent = """
                     # BabiAgent
                     
-                    You are BabiAgent, an expert coding assistant powered by LangGraph4J.
+                    You are BabiAgent, an expert coding assistant.
                     
                     ## Rules
                     

@@ -2,8 +2,8 @@ package org.hongxi.babi.langgraph4j.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.langgraph4j.skill.SkillLoader;
-import org.hongxi.babi.langgraph4j.skill.SkillLoader.Skill;
+import org.hongxi.babi.common.skill.SkillLoader;
+import org.hongxi.babi.common.skill.SkillLoader.Skill;
 
 import java.nio.file.Path;
 import java.util.Map;

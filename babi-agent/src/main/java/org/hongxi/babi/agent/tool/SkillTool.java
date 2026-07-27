@@ -2,8 +2,8 @@ package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.hongxi.babi.agent.skill.SkillLoader;
-import org.hongxi.babi.agent.skill.SkillLoader.Skill;
+import org.hongxi.babi.common.skill.SkillLoader;
+import org.hongxi.babi.common.skill.SkillLoader.Skill;
 
 import java.nio.file.Path;
 import java.util.Map;
