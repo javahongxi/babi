@@ -15,6 +15,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,12 +46,14 @@ public class BabiAgentController {
 
     private final BabiService babiService;
     private final ToolEventBus toolEventBus;
+    private final Path workspacePath;
 
     private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
-    public BabiAgentController(BabiService babiService, ToolEventBus toolEventBus) {
+    public BabiAgentController(BabiService babiService, ToolEventBus toolEventBus, Path workspacePath) {
         this.babiService = babiService;
         this.toolEventBus = toolEventBus;
+        this.workspacePath = workspacePath;
     }
 
     /**
@@ -147,13 +152,24 @@ public class BabiAgentController {
     }
 
     /**
-     * Clear session memory.
+     * Clear session memory (delete MEMORY.md file).
      */
     @DeleteMapping("/memory")
     public Mono<Map<String, String>> deleteMemory(
             @RequestParam(defaultValue = "default") String sessionId) {
-        babiService.clearMemory(sessionId);
-        return Mono.just(Map.of("status", "ok", "message", "Memory cleared for session '" + sessionId + "'"));
+        Path memoryFile = workspacePath.resolve(sessionId).resolve("MEMORY.md");
+        boolean deleted = false;
+        try {
+            deleted = Files.deleteIfExists(memoryFile);
+        } catch (IOException e) {
+            log.warn("Failed to delete memory file: {}", memoryFile, e);
+        }
+        if (deleted) {
+            log.info("Memory cleared for session: {}", sessionId);
+            return Mono.just(Map.of("status", "ok", "message", "Memory cleared for session '" + sessionId + "'"));
+        } else {
+            return Mono.just(Map.of("status", "ok", "message", "No memory file found for session '" + sessionId + "'"));
+        }
     }
 
     private static ServerSentEvent<String> sse(String eventType, Object data) {

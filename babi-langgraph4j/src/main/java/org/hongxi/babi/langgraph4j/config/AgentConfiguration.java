@@ -50,9 +50,15 @@ public class AgentConfiguration {
     }
 
     @Bean
+    public MemorySaver memorySaver() {
+        return new MemorySaver();
+    }
+
+    @Bean
     public CompiledGraph<?> compiledGraph(
             Path workspacePath,
             ToolEventBus toolEventBus,
+            MemorySaver memorySaver,
             @Value("${babi.agent.model.name:qwen-plus}") String modelName) throws GraphStateException {
 
         // DashScope via OpenAI-compatible API
@@ -98,7 +104,7 @@ public class AgentConfiguration {
                 .build();
 
         var compileConfig = org.bsc.langgraph4j.CompileConfig.builder()
-                .checkpointSaver(new MemorySaver())
+                .checkpointSaver(memorySaver)
                 .build();
 
         log.info("LangGraph4J agent compiled with streaming model: {}", modelName);

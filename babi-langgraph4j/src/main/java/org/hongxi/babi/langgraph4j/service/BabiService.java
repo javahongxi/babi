@@ -3,6 +3,7 @@ package org.hongxi.babi.langgraph4j.service;
 import dev.langchain4j.data.message.UserMessage;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.RunnableConfig;
+import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
 import org.hongxi.babi.langgraph4j.util.ToolContext;
 import org.slf4j.Logger;
@@ -27,10 +28,12 @@ public class BabiService {
     private static final Logger log = LoggerFactory.getLogger(BabiService.class);
 
     private final CompiledGraph<?> graph;
+    private final MemorySaver memorySaver;
     private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
-    public BabiService(CompiledGraph<?> graph) {
+    public BabiService(CompiledGraph<?> graph, MemorySaver memorySaver) {
         this.graph = graph;
+        this.memorySaver = memorySaver;
     }
 
     /**
@@ -97,5 +100,22 @@ public class BabiService {
 
     public boolean isActive(String sessionId) {
         return activeSessions.contains(sessionId);
+    }
+
+    /**
+     * Clear checkpoint memory for a specific session.
+     *
+     * @param sessionId session identifier
+     */
+    public void clearMemory(String sessionId) {
+        try {
+            var config = RunnableConfig.builder()
+                    .threadId(sessionId)
+                    .build();
+            memorySaver.release(config);
+            log.info("Memory cleared for session: {}", sessionId);
+        } catch (Exception e) {
+            log.error("Failed to clear memory for session {}: {}", sessionId, e.getMessage(), e);
+        }
     }
 }
