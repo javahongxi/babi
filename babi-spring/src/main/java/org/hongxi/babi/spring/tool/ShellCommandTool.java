@@ -11,11 +11,11 @@ import java.io.File;
  *
  * <p>Delegates to {@link ShellCommandLogic} for the actual command execution.
  */
-public class ShellCommandTools {
+public class ShellCommandTool {
 
     private final File workingDir;
 
-    public ShellCommandTools(String workspacePath) {
+    public ShellCommandTool(String workspacePath) {
         this.workingDir = workspacePath != null ? new File(workspacePath) : null;
     }
 

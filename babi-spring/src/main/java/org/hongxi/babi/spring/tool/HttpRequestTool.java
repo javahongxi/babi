@@ -11,11 +11,11 @@ import java.util.Map;
  * Tool for making arbitrary HTTP requests via Spring AI @Tool annotation.
  * Delegates to {@link HttpRequestLogic} for actual HTTP request processing.
  */
-public class HttpRequestTools {
+public class HttpRequestTool {
 
     private final HttpClient client;
 
-    public HttpRequestTools() {
+    public HttpRequestTool() {
         this.client = HttpRequestLogic.createHttpClient();
     }
 

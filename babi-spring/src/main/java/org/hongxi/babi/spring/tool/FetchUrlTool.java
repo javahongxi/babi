@@ -10,11 +10,11 @@ import java.net.http.HttpClient;
  * Tool for fetching web page content via Spring AI @Tool annotation.
  * Delegates to {@link FetchUrlLogic} for actual HTTP request and HTML processing.
  */
-public class FetchUrlTools {
+public class FetchUrlTool {
 
     private final HttpClient client;
 
-    public FetchUrlTools() {
+    public FetchUrlTool() {
         this.client = FetchUrlLogic.createHttpClient();
     }
 

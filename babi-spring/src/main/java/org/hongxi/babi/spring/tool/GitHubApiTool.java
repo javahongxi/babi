@@ -15,11 +15,11 @@ import java.util.Map;
  *
  * <p>Delegates to {@link GitHubApiLogic} for actual API request processing.
  */
-public class GitHubApiTools {
+public class GitHubApiTool {
 
     private final HttpClient client;
 
-    public GitHubApiTools() {
+    public GitHubApiTool() {
         this.client = GitHubApiLogic.createHttpClient();
     }
 

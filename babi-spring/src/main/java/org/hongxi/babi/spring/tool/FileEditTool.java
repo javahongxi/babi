@@ -9,7 +9,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  *
  * <p>Delegates to {@link FileEditLogic} for the actual file editing.
  */
-public class FileEditTools {
+public class FileEditTool {
 
     @Tool(description = "Edit a file by replacing an exact text match. The old_text must match "
             + "the file content exactly (including whitespace). Only the first occurrence is replaced.")

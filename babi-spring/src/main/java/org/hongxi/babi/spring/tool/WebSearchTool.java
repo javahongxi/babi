@@ -15,11 +15,11 @@ import java.net.http.HttpClient;
  * Requires {@code TAVILY_API_KEY} environment variable (free tier: 1000 calls/month).
  * Get your API key at https://tavily.com.
  */
-public class WebSearchTools {
+public class WebSearchTool {
 
     private final HttpClient client;
 
-    public WebSearchTools() {
+    public WebSearchTool() {
         this.client = WebSearchLogic.createHttpClient();
     }
 

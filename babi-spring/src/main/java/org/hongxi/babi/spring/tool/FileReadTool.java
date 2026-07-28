@@ -9,7 +9,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  *
  * <p>Delegates to {@link FileReadLogic} for the actual file reading.
  */
-public class FileReadTools {
+public class FileReadTool {
 
     @Tool(description = "Read the contents of a file at the given path. Returns the file content as a string.")
     public String readFile(

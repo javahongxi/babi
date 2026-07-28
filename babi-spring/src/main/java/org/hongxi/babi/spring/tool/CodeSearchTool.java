@@ -9,7 +9,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  *
  * <p>Delegates to {@link CodeSearchLogic} for the actual search logic.
  */
-public class CodeSearchTools {
+public class CodeSearchTool {
 
     @Tool(description = "Search for a pattern in files under a directory. Returns matching lines "
             + "with file paths and line numbers. Uses ripgrep if available, falls back to grep. "

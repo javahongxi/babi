@@ -4,15 +4,15 @@ import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
 import org.hongxi.babi.spring.eventbus.ToolEventBus;
-import org.hongxi.babi.spring.tool.CodeSearchTools;
-import org.hongxi.babi.spring.tool.FetchUrlTools;
-import org.hongxi.babi.spring.tool.FileEditTools;
-import org.hongxi.babi.spring.tool.FileReadTools;
-import org.hongxi.babi.spring.tool.GitHubApiTools;
-import org.hongxi.babi.spring.tool.HttpRequestTools;
-import org.hongxi.babi.spring.tool.ShellCommandTools;
-import org.hongxi.babi.spring.tool.SkillTools;
-import org.hongxi.babi.spring.tool.WebSearchTools;
+import org.hongxi.babi.spring.tool.CodeSearchTool;
+import org.hongxi.babi.spring.tool.FetchUrlTool;
+import org.hongxi.babi.spring.tool.FileEditTool;
+import org.hongxi.babi.spring.tool.FileReadTool;
+import org.hongxi.babi.spring.tool.GitHubApiTool;
+import org.hongxi.babi.spring.tool.HttpRequestTool;
+import org.hongxi.babi.spring.tool.ShellCommandTool;
+import org.hongxi.babi.spring.tool.SkillTool;
+import org.hongxi.babi.spring.tool.WebSearchTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -83,8 +83,8 @@ public class AgentConfiguration {
     }
 
     @Bean
-    public SkillTools skillTools(Path workspacePath) {
-        return new SkillTools(workspacePath);
+    public SkillTool skillTools(Path workspacePath) {
+        return new SkillTool(workspacePath);
     }
 
     /**
@@ -107,11 +107,11 @@ public class AgentConfiguration {
             ChatMemory chatMemory,
             Path workspacePath,
             ToolCallingManager toolCallingManager,
-            SkillTools skillTools) {
+            SkillTool skillTool) {
 
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
-                skillTools.getSkills().values());
+                skillTool.getSkills().values());
 
         // Spring AI does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.
@@ -127,15 +127,15 @@ public class AgentConfiguration {
                                 .build()
                 )
                 .defaultTools(
-                        new FetchUrlTools(),
-                        new HttpRequestTools(),
-                        new GitHubApiTools(),
-                        new FileReadTools(),
-                        new FileEditTools(),
-                        new ShellCommandTools(workspacePath.toString()),
-                        new CodeSearchTools(),
-                        new WebSearchTools(),
-                        skillTools
+                        new FetchUrlTool(),
+                        new HttpRequestTool(),
+                        new GitHubApiTool(),
+                        new FileReadTool(),
+                        new FileEditTool(),
+                        new ShellCommandTool(workspacePath.toString()),
+                        new CodeSearchTool(),
+                        new WebSearchTool(),
+                        skillTool
                 )
                 .build();
     }

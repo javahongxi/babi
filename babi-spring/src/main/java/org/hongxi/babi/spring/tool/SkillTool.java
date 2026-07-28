@@ -18,11 +18,11 @@ import java.util.Map;
  *   <li>{@code {workspace}/.qoder/skills/} — project-level skills (highest priority)</li>
  * </ul>
  */
-public class SkillTools {
+public class SkillTool {
 
     private final Map<String, Skill> skills;
 
-    public SkillTools(Path workspacePath) {
+    public SkillTool(Path workspacePath) {
         this.skills = SkillLoader.loadAll(workspacePath);
     }
 
