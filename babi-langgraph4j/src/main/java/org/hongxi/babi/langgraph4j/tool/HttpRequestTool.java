@@ -24,7 +24,7 @@ public class HttpRequestTool {
         this.client = HttpRequestLogic.createHttpClient();
     }
 
-    @Tool("Make an HTTP request (GET, POST, PUT, DELETE, PATCH) to any URL. Use for API calls with custom methods, headers, or request bodies. NOTE: Do NOT use this for github.com URLs — use github_api_request instead.")
+    @Tool(name = "http_request", value = "Make an HTTP request (GET, POST, PUT, DELETE, PATCH) to any URL. Use for API calls with custom methods, headers, or request bodies. NOTE: Do NOT use this for github.com URLs — use github_api_request instead.")
     public String httpRequest(
             @P("HTTP method: GET, POST, PUT, DELETE, PATCH") String method,
             @P("Full URL to request") String url,

@@ -19,7 +19,7 @@ public class ShellCommandTool {
         this.workingDir = workspacePath != null ? new File(workspacePath) : null;
     }
 
-    @Tool(description = "Execute a shell command on the local system and return its output. "
+    @Tool(name = "shell_command", description = "Execute a shell command on the local system and return its output. "
             + "Use for build, test, git, and diagnostic commands.")
     public String shellCommand(
             @ToolParam(description = "The shell command to execute") String command) {

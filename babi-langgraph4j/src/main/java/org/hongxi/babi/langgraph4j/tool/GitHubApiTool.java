@@ -27,8 +27,8 @@ public class GitHubApiTool {
         this.client = GitHubApiLogic.createHttpClient();
     }
 
-    @Tool("Call the GitHub REST API. Token is injected automatically — never ask the user for a token. Use for issues, PRs, comments, repo search, file content, checks, etc. Path should start with '/' (e.g. '/repos/owner/repo/issues').")
-    public String github_api_request(
+    @Tool(name = "github_api_request", value = "Call the GitHub REST API. Token is injected automatically — never ask the user for a token. Use for issues, PRs, comments, repo search, file content, checks, etc. Path should start with '/' (e.g. '/repos/owner/repo/issues').")
+    public String githubApiRequest(
             @P("HTTP method: GET, POST, PUT, PATCH, DELETE") String method,
             @P("GitHub API path starting with '/' (e.g. /repos/owner/repo/issues)") String path,
             @P("Optional JSON request body (for POST/PUT/PATCH)") String body,
@@ -39,8 +39,8 @@ public class GitHubApiTool {
         return GitHubApiLogic.githubApiRequest(client, token, method, path, body, queryParams);
     }
 
-    @Tool("Query a GitHub user's pinned repositories via GraphQL. Token is injected automatically. Returns up to 6 pinned repos with name, description, URL, stars, forks, and primary language.")
-    public String github_pinned_repos(
+    @Tool(name = "github_pinned_repos", value = "Query a GitHub user's pinned repositories via GraphQL. Token is injected automatically. Returns up to 6 pinned repos with name, description, URL, stars, forks, and primary language.")
+    public String githubPinnedRepos(
             @P("GitHub username to query pinned repos for") String username) {
 
         emitEvent("github_pinned_repos", Map.of("username", username));

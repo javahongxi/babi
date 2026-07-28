@@ -23,7 +23,7 @@ public class WebSearchTool {
         this.client = WebSearchLogic.createHttpClient();
     }
 
-    @Tool(description = "Search the web for real-time information using Tavily AI search. "
+    @Tool(name = "web_search", description = "Search the web for real-time information using Tavily AI search. "
             + "Use when you need up-to-date information about current events, news, "
             + "weather, prices, or any topic requiring recent data beyond your training cutoff.")
     public String webSearch(

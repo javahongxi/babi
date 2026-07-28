@@ -19,7 +19,7 @@ public class HttpRequestTool {
         this.client = HttpRequestLogic.createHttpClient();
     }
 
-    @Tool(description =
+    @Tool(name = "http_request", description =
             "Make an HTTP request (GET, POST, PUT, DELETE, PATCH) to any URL."
                     + " Use for API calls with custom methods, headers, or request bodies."
                     + " NOTE: Do NOT use this for github.com URLs — use github_api_request instead.")

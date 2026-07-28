@@ -28,7 +28,7 @@ public class ShellCommandTool {
         this.eventBus = eventBus;
     }
 
-    @Tool("Execute a shell command on the local system and return its output. Use for build, test, git, and diagnostic commands.")
+    @Tool(name = "shell_command", value = "Execute a shell command on the local system and return its output. Use for build, test, git, and diagnostic commands.")
     public String shellCommand(@P("The shell command to execute") String command) {
         emitEvent("shell_command", Map.of("command", command));
         return ShellCommandLogic.shellCommand(command, workingDir);

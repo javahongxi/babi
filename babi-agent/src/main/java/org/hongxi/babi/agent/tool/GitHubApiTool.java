@@ -26,12 +26,13 @@ public class GitHubApiTool {
     }
 
     @Tool(
+            name = "github_api_request",
             description =
                     "Call the GitHub REST API. Token is injected automatically — never ask the"
                             + " user for a token. Use for issues, PRs, comments, repo search,"
                             + " file content, checks, etc. Path should start with '/' (e.g."
                             + " '/repos/owner/repo/issues').")
-    public String github_api_request(
+    public String githubApiRequest(
             RuntimeContext runtimeContext,
             @ToolParam(name = "method", description = "HTTP method: GET, POST, PUT, PATCH, DELETE")
                     String method,
@@ -56,11 +57,12 @@ public class GitHubApiTool {
     }
 
     @Tool(
+            name = "github_pinned_repos",
             description =
                     "Query a GitHub user's pinned repositories via GraphQL. Token is injected"
                             + " automatically. Returns up to 6 pinned repos with name, description,"
                             + " URL, stars, forks, and primary language.")
-    public String github_pinned_repos(
+    public String githubPinnedRepos(
             RuntimeContext runtimeContext,
             @ToolParam(name = "username", description = "GitHub username to query pinned repos for")
                     String username) {

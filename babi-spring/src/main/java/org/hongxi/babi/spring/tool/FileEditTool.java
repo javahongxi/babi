@@ -11,7 +11,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  */
 public class FileEditTool {
 
-    @Tool(description = "Edit a file by replacing an exact text match. The old_text must match "
+    @Tool(name = "edit_file", description = "Edit a file by replacing an exact text match. The old_text must match "
             + "the file content exactly (including whitespace). Only the first occurrence is replaced.")
     public String editFile(
             @ToolParam(description = "Path to the file to edit") String filePath,

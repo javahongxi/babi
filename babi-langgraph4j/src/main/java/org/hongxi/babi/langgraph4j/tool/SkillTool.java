@@ -23,7 +23,7 @@ public class SkillTool {
         return skills;
     }
 
-    @Tool("List all available skills. Returns skill names and descriptions. Call this before use_skill to discover what skills are available.")
+    @Tool(name = "list_skills", value = "List all available skills. Returns skill names and descriptions. Call this before use_skill to discover what skills are available.")
     public String listSkills() {
         if (skills.isEmpty()) {
             return "No skills found. Create .md files in ~/.agents/skills/, ~/.babi/skills/, or .qoder/skills/ to add skills.";
@@ -37,7 +37,7 @@ public class SkillTool {
         return sb.toString();
     }
 
-    @Tool("Activate a skill by name and get its full instructions. The instructions will guide you through the workflow. Call list_skills first to see available skills.")
+    @Tool(name = "use_skill", value = "Activate a skill by name and get its full instructions. The instructions will guide you through the workflow. Call list_skills first to see available skills.")
     public String useSkill(@P("The name of the skill to activate (from list_skills output)") String skillName) {
         Skill skill = skills.get(skillName);
         if (skill == null) {

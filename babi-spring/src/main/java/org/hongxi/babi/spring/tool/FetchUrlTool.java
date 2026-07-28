@@ -18,7 +18,7 @@ public class FetchUrlTool {
         this.client = FetchUrlLogic.createHttpClient();
     }
 
-    @Tool(description =
+    @Tool(name = "fetch_url", description =
             "Fetch a URL and return its content as readable text with structure preserved"
                     + " (headings, code blocks, lists). Works with most web pages including"
                     + " blogs and documentation. For APIs, use http_request instead."

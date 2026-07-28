@@ -21,7 +21,7 @@ public class FileReadTool {
         this.eventBus = eventBus;
     }
 
-    @Tool("Read the contents of a file at the given path. Returns the file content as a string.")
+    @Tool(name = "read_file", value = "Read the contents of a file at the given path. Returns the file content as a string.")
     public String readFile(@P("Absolute or relative path to the file to read") String filePath) {
         emitEvent("read_file", Map.of("file_path", filePath));
         return FileReadLogic.readFile(filePath);

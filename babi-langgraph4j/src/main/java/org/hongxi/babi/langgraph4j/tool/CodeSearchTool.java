@@ -21,7 +21,7 @@ public class CodeSearchTool {
         this.eventBus = eventBus;
     }
 
-    @Tool("Search for a pattern in files under a directory. Returns matching lines with file paths and line numbers. Uses ripgrep if available, falls back to grep. Supports regex patterns.")
+    @Tool(name = "code_search", value = "Search for a pattern in files under a directory. Returns matching lines with file paths and line numbers. Uses ripgrep if available, falls back to grep. Supports regex patterns.")
     public String codeSearch(
             @P("The text or regex pattern to search for") String pattern,
             @P("Directory to search in (default: current directory)") String directory,

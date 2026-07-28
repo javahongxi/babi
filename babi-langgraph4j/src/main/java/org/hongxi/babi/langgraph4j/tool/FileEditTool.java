@@ -21,7 +21,7 @@ public class FileEditTool {
         this.eventBus = eventBus;
     }
 
-    @Tool("Edit a file by replacing an exact text match. The old_text must match the file content exactly (including whitespace). Only the first occurrence is replaced.")
+    @Tool(name = "edit_file", value = "Edit a file by replacing an exact text match. The old_text must match the file content exactly (including whitespace). Only the first occurrence is replaced.")
     public String editFile(
             @P("Path to the file to edit") String filePath,
             @P("The exact text to find in the file (must match precisely)") String oldText,

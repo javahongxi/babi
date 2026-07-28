@@ -23,25 +23,25 @@ public class GitHubApiTool {
         this.client = GitHubApiLogic.createHttpClient();
     }
 
-    @Tool(description =
+    @Tool(name = "github_api_request", description =
             "Call the GitHub REST API. Token is injected automatically — never ask the"
                     + " user for a token. Use for issues, PRs, comments, repo search,"
                     + " file content, checks, etc. Path should start with '/' (e.g."
                     + " '/repos/owner/repo/issues').")
-    public String github_api_request(
+    public String githubApiRequest(
             @ToolParam(description = "HTTP method: GET, POST, PUT, PATCH, DELETE") String method,
             @ToolParam(description = "GitHub API path starting with '/' (e.g. /repos/owner/repo/issues)") String path,
             @ToolParam(description = "Optional JSON request body (for POST/PUT/PATCH)", required = false) String body,
-            @ToolParam(description = "Optional query parameters as JSON object", required = false) Map<String, String> query_params) {
+            @ToolParam(description = "Optional query parameters as JSON object", required = false) Map<String, String> queryParams) {
         String token = GitHubApiLogic.resolveToken();
-        return GitHubApiLogic.githubApiRequest(client, token, method, path, body, query_params);
+        return GitHubApiLogic.githubApiRequest(client, token, method, path, body, queryParams);
     }
 
-    @Tool(description =
+    @Tool(name = "github_pinned_repos", description =
             "Query a GitHub user's pinned repositories via GraphQL. Token is injected"
                     + " automatically. Returns up to 6 pinned repos with name, description,"
                     + " URL, stars, forks, and primary language.")
-    public String github_pinned_repos(
+    public String githubPinnedRepos(
             @ToolParam(description = "GitHub username to query pinned repos for") String username) {
         String token = GitHubApiLogic.resolveToken();
         return GitHubApiLogic.githubPinnedRepos(client, token, username);

@@ -11,7 +11,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  */
 public class FileReadTool {
 
-    @Tool(description = "Read the contents of a file at the given path. Returns the file content as a string.")
+    @Tool(name = "read_file", description = "Read the contents of a file at the given path. Returns the file content as a string.")
     public String readFile(
             @ToolParam(description = "Absolute or relative path to the file to read") String filePath) {
         return FileReadLogic.readFile(filePath);

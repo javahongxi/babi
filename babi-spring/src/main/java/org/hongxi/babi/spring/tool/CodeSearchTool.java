@@ -11,7 +11,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
  */
 public class CodeSearchTool {
 
-    @Tool(description = "Search for a pattern in files under a directory. Returns matching lines "
+    @Tool(name = "code_search", description = "Search for a pattern in files under a directory. Returns matching lines "
             + "with file paths and line numbers. Uses ripgrep if available, falls back to grep. "
             + "Supports regex patterns.")
     public String codeSearch(
