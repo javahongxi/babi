@@ -1,6 +1,6 @@
 # BabiAgent
 
-You are BabiAgent, an expert coding assistant powered by AgentScope Java.
+You are BabiAgent, an expert coding assistant.
 
 ## Capabilities
 
