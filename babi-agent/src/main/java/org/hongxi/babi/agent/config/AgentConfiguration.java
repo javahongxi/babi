@@ -44,6 +44,15 @@ public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
+    @Value("${agentscope.model.api-key:}")
+    private String apiKey;
+
+    @Value("${agentscope.model.name:qwen-plus}")
+    private String modelName;
+
+    @Value("${agentscope.model.fallback:qwen-turbo}")
+    private String fallbackModelName;
+
     /**
      * Resolved workspace directory path, available for other beans that need it.
      */
@@ -94,9 +103,7 @@ public class AgentConfiguration {
     public HarnessAgent harnessAgent(
             Path workspacePath,
             AgentStateStore stateStore,
-            ToolEventBus toolEventBus,
-            @Value("${agentscope.model.name:qwen-plus}") String modelName,
-            @Value("${agentscope.model.fallback:qwen-turbo}") String fallbackModelName) {
+            ToolEventBus toolEventBus) {
 
         // Register babi-specific custom tools
         Toolkit toolkit = new Toolkit();
@@ -113,11 +120,12 @@ public class AgentConfiguration {
                 .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
                 .model(DashScopeChatModel.builder()
-                        .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                        .apiKey(apiKey)
                         .modelName(modelName)
                         .stream(true)
                         .enableSearch(true)
                         .build())
+                .fallbackModel(fallbackModelName)  // Auto-fallback when primary model is unavailable
                 .toolkit(toolkit)
                 .workspace(workspacePath)
                 .filesystem(new LocalFilesystemSpec()
@@ -128,7 +136,6 @@ public class AgentConfiguration {
                 .stateStore(stateStore)
                 .maxIters(20)
                 .maxRetries(2)              // Tool calls retry up to 2 times on failure
-                .fallbackModel(fallbackModelName)  // Auto-fallback when primary model is unavailable
                 .enableTaskList()
                 .enablePlanMode()            // Plan mode: investigate first, then execute
                 .allowShellInPlanMode()      // Allow build/test commands in plan mode

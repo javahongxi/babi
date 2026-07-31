@@ -30,10 +30,10 @@ public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
-    @Value("${babi.agent.model.name:qwen-plus}")
+    @Value("${babi.agent.model.name:deepseek-v4-flash}")
     private String modelName;
 
-    @Value("${babi.agent.model.base-url:https://dashscope.aliyuncs.com/compatible-mode/v1}")
+    @Value("${babi.agent.model.base-url:https://api.deepseek.com}")
     private String baseUrl;
 
     @Value("${babi.agent.model.api-key:}")

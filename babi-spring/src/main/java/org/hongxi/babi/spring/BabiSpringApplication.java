@@ -15,21 +15,13 @@ import org.springframework.core.env.Environment;
  *
  * <p><b>Run:</b>
  * <pre>
- *   export DASHSCOPE_API_KEY=your_key
+ *   export DEEPSEEK_API_KEY=your_key
  *   mvn spring-boot:run -pl babi-spring
  * </pre>
  */
 @SpringBootApplication
 public class BabiSpringApplication {
-
     public static void main(String[] args) {
-        String apiKey = System.getenv("DASHSCOPE_API_KEY");
-        if (apiKey == null || apiKey.isBlank()) {
-            System.err.println("Error: DASHSCOPE_API_KEY environment variable not set.");
-            System.err.println("Get your API key from: https://dashscope.aliyun.com");
-            System.err.println("Then set it with: export DASHSCOPE_API_KEY=your_api_key");
-            System.exit(1);
-        }
         SpringApplication.run(BabiSpringApplication.class, args);
     }
 

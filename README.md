@@ -36,7 +36,7 @@
 ## 环境准备
 
 ```bash
-# 阿里云百炼 API Key
+# 阿里云百炼 API Key （或 DEEPSEEK_API_KEY）
 export DASHSCOPE_API_KEY=your_api_key
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）

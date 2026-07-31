@@ -11,6 +11,6 @@ babi:
 
 agentscope:
   model:
-    provider: dashscope
+    api-key: ${DASHSCOPE_API_KEY:}
     name: qwen-plus
-    fallback: qwen-turbo
+    fallback: qwen3.7-max
