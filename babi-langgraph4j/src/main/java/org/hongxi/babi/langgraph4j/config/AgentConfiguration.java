@@ -30,6 +30,15 @@ public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
+    @Value("${babi.agent.model.name:qwen-plus}")
+    private String modelName;
+
+    @Value("${babi.agent.model.base-url:https://dashscope.aliyuncs.com/compatible-mode/v1}")
+    private String baseUrl;
+
+    @Value("${babi.agent.model.api-key:}")
+    private String apiKey;
+
     @Bean
     public Path workspacePath(@Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
         String resolved = AgentUtils.resolveWorkspace(workspace);
@@ -59,13 +68,12 @@ public class AgentConfiguration {
     public CompiledGraph<?> compiledGraph(
             Path workspacePath,
             ToolEventBus toolEventBus,
-            MemorySaver memorySaver,
-            @Value("${babi.agent.model.name:qwen-plus}") String modelName) throws GraphStateException {
+            MemorySaver memorySaver) throws GraphStateException {
 
         // DashScope via OpenAI-compatible API
         var streamingModel = OpenAiStreamingChatModel.builder()
-                .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
-                .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
                 .modelName(modelName)
                 .build();
 
