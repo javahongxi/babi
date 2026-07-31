@@ -21,7 +21,6 @@ import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
 import org.springframework.beans.factory.annotation.Value;
@@ -98,10 +97,10 @@ public class AgentConfiguration {
 
     @Bean
     public ChatClient chatClient(
-            ChatModel chatModel,
+            ChatClient.Builder chatClientBuilder,
             ChatMemory chatMemory,
-            Path workspacePath,
-            ToolCallingManager toolCallingManager) {
+            ToolCallingManager toolCallingManager,
+            Path workspacePath) {
         SkillTool skillTool = new SkillTool(workspacePath);
 
         String sysPrompt = CodingSystemPrompt.build(
@@ -113,7 +112,7 @@ public class AgentConfiguration {
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         sysPrompt += "\n\nCurrent date and time: " + now;
 
-        return ChatClient.builder(chatModel)
+        return chatClientBuilder
                 .defaultSystem(sysPrompt)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
