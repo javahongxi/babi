@@ -1,4 +1,4 @@
-package org.hongxi.babi.spring.util;
+package org.hongxi.babi.common.util;
 
 /**
  * ThreadLocal holder for the current session ID.

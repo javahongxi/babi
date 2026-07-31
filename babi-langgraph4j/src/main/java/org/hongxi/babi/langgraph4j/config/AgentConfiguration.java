@@ -2,6 +2,7 @@ package org.hongxi.babi.langgraph4j.config;
 
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
@@ -76,7 +77,7 @@ public class AgentConfiguration {
         var fileEditTool = new FileEditTool(toolEventBus);
         var shellCommandTool = new ShellCommandTool(workspacePath.toString(), toolEventBus);
         var codeSearchTool = new CodeSearchTool(toolEventBus);
-        var skillTool = new SkillTool(workspacePath);
+        var skillTool = new SkillTool(workspacePath, toolEventBus);
         var webSearchTool = new WebSearchTool(toolEventBus);
 
         // Build system prompt
@@ -103,7 +104,7 @@ public class AgentConfiguration {
                 .toolsFromObject(webSearchTool)
                 .build();
 
-        var compileConfig = org.bsc.langgraph4j.CompileConfig.builder()
+        var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)
                 .build();
 

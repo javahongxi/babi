@@ -13,7 +13,7 @@ import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
-import org.hongxi.babi.spring.util.SessionContextHolder;
+import org.hongxi.babi.common.util.SessionContextHolder;
 
 import java.util.LinkedHashMap;
 import java.util.List;

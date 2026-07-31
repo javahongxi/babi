@@ -2,9 +2,8 @@ package org.hongxi.babi.langgraph4j.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.common.tool.WebSearchLogic;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
-import org.hongxi.babi.langgraph4j.util.ToolContext;
+import org.hongxi.babi.common.tool.WebSearchLogic;
 
 import java.net.http.HttpClient;
 import java.util.Map;
@@ -18,13 +17,12 @@ import java.util.Map;
  * search enabled via {@code enableSearch(true)}. This tool is only for the
  * LangGraph4j module where the model lacks native search capability.
  */
-public class WebSearchTool {
+public class WebSearchTool extends AbstractNotifyingTool {
 
     private final HttpClient client;
-    private final ToolEventBus eventBus;
 
     public WebSearchTool(ToolEventBus eventBus) {
-        this.eventBus = eventBus;
+        super(eventBus);
         this.client = WebSearchLogic.createHttpClient();
     }
 
@@ -38,14 +36,5 @@ public class WebSearchTool {
 
         emitEvent("web_search", Map.of("query", query));
         return WebSearchLogic.webSearch(client, query, maxResults, days);
-    }
-
-    private void emitEvent(String toolName, Map<String, Object> input) {
-        if (eventBus != null) {
-            String sessionId = ToolContext.getSessionId();
-            if (sessionId != null) {
-                eventBus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, input));
-            }
-        }
     }
 }

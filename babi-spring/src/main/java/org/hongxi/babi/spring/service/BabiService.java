@@ -1,6 +1,6 @@
 package org.hongxi.babi.spring.service;
 
-import org.hongxi.babi.spring.util.SessionContextHolder;
+import org.hongxi.babi.common.util.SessionContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;

@@ -2,6 +2,7 @@ package org.hongxi.babi.langgraph4j.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.skill.SkillLoader;
 import org.hongxi.babi.common.skill.SkillLoader.Skill;
 
@@ -11,11 +12,12 @@ import java.util.Map;
 /**
  * Tool for discovering and activating Skills.
  */
-public class SkillTool {
+public class SkillTool extends AbstractNotifyingTool {
 
     private final Map<String, Skill> skills;
 
-    public SkillTool(Path workspacePath) {
+    public SkillTool(Path workspacePath, ToolEventBus eventBus) {
+        super(eventBus);
         this.skills = SkillLoader.loadAll(workspacePath);
     }
 
@@ -25,6 +27,7 @@ public class SkillTool {
 
     @Tool(name = "list_skills", value = "List all available skills. Returns skill names and descriptions. Call this before use_skill to discover what skills are available.")
     public String listSkills() {
+        emitEvent("list_skills", Map.of());
         if (skills.isEmpty()) {
             return "No skills found. Create .md files in ~/.agents/skills/, ~/.babi/skills/, or .qoder/skills/ to add skills.";
         }
@@ -39,6 +42,7 @@ public class SkillTool {
 
     @Tool(name = "use_skill", value = "Activate a skill by name and get its full instructions. The instructions will guide you through the workflow. Call list_skills first to see available skills.")
     public String useSkill(@P("The name of the skill to activate (from list_skills output)") String skillName) {
+        emitEvent("use_skill", Map.of("skill_name", skillName));
         Skill skill = skills.get(skillName);
         if (skill == null) {
             for (Map.Entry<String, Skill> entry : skills.entrySet()) {

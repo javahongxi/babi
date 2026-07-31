@@ -5,7 +5,7 @@ import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
-import org.hongxi.babi.langgraph4j.util.ToolContext;
+import org.hongxi.babi.common.util.SessionContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -54,7 +54,7 @@ public class BabiService {
         new Thread(() -> {
             try {
                 // Set ThreadLocal for tool event emission
-                ToolContext.setSessionId(sessionId);
+                SessionContextHolder.setSessionId(sessionId);
 
                 // Clear stale FINAL_RESPONSE from previous turn (LangGraph4J bug:
                 // executeTool routes based on state.finalResponse(), which persists
@@ -83,7 +83,6 @@ public class BabiService {
                     log.warn("Failed to emit done event for session={}", sessionId);
                 }
                 sink.tryEmitComplete();
-
             } catch (Exception e) {
                 log.error("Agent error for session={}: {}", sessionId, e.getMessage(), e);
                 sink.tryEmitNext(Map.of("type", "error", "data", e.getMessage() != null ? e.getMessage() : "Unknown error"));
@@ -91,15 +90,11 @@ public class BabiService {
                 sink.tryEmitComplete();
             } finally {
                 activeSessions.remove(sessionId);
-                ToolContext.clear();
+                SessionContextHolder.clear();
             }
         }, "babi-agent-" + sessionId).start();
 
         return sink.asFlux();
-    }
-
-    public boolean isActive(String sessionId) {
-        return activeSessions.contains(sessionId);
     }
 
     /**

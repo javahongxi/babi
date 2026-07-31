@@ -5,6 +5,7 @@ import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.langgraph4j.service.BabiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -49,7 +50,7 @@ public class BabiAgentController {
      *
      * <p>Merges tool call events and agent streaming tokens into one SSE output.
      */
-    @GetMapping(path = "/stream", produces = "text/event-stream;charset=UTF-8")
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {

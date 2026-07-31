@@ -12,6 +12,7 @@ import io.agentscope.harness.agent.HarnessAgent;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -87,7 +88,7 @@ public class BabiAgentController {
      * @param sessionId session identifier (defaults to "default")
      * @return SSE event stream
      */
-    @GetMapping(path = "/stream", produces = "text/event-stream;charset=UTF-8")
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {

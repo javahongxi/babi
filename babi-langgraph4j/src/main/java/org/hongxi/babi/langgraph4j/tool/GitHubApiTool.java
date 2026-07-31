@@ -2,9 +2,8 @@ package org.hongxi.babi.langgraph4j.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.common.tool.GitHubApiLogic;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
-import org.hongxi.babi.langgraph4j.util.ToolContext;
+import org.hongxi.babi.common.tool.GitHubApiLogic;
 
 import java.net.http.HttpClient;
 import java.util.Map;
@@ -17,13 +16,12 @@ import java.util.Map;
  *
  * <p>Delegates to {@link GitHubApiLogic} for the actual API request processing.
  */
-public class GitHubApiTool {
+public class GitHubApiTool extends AbstractNotifyingTool {
 
     private final HttpClient client;
-    private final ToolEventBus eventBus;
 
     public GitHubApiTool(ToolEventBus eventBus) {
-        this.eventBus = eventBus;
+        super(eventBus);
         this.client = GitHubApiLogic.createHttpClient();
     }
 
@@ -46,12 +44,5 @@ public class GitHubApiTool {
         emitEvent("github_pinned_repos", Map.of("username", username));
         String token = GitHubApiLogic.resolveToken();
         return GitHubApiLogic.githubPinnedRepos(client, token, username);
-    }
-
-    private void emitEvent(String toolName, Map<String, Object> input) {
-        if (eventBus != null) {
-            String sessionId = ToolContext.getSessionId();
-            if (sessionId != null) eventBus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, input));
-        }
     }
 }
