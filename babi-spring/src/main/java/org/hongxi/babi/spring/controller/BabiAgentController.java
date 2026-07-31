@@ -70,8 +70,7 @@ public class BabiAgentController {
     public Flux<ServerSentEvent<String>> streamChat(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
-
-        log.info(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
+        log.debug(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
 
         if (!activeSessions.add(sessionId)) {
             log.warn(">>> DUPLICATE request rejected: sessionId='{}'", sessionId);

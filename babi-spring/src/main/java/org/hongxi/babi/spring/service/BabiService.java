@@ -48,7 +48,7 @@ public class BabiService {
      * @return Flux of text token strings
      */
     public Flux<String> streamChat(String userMessage, String sessionId) {
-        log.info("streamChat: message='{}', sessionId='{}'", userMessage, sessionId);
+        log.debug("streamChat: message='{}', sessionId='{}'", userMessage, sessionId);
         SessionContextHolder.setSessionId(sessionId);
         return chatClient.prompt()
                 .user(userMessage)

@@ -4,6 +4,7 @@ import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
+import org.hongxi.babi.spring.advisor.ToolCallObservationAdvisor;
 import org.hongxi.babi.spring.tool.CodeSearchTool;
 import org.hongxi.babi.spring.tool.FetchUrlTool;
 import org.hongxi.babi.spring.tool.FileEditTool;
@@ -118,7 +119,8 @@ public class AgentConfiguration {
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
                         ToolCallingAdvisor.builder()
                                 .toolCallingManager(toolCallingManager)
-                                .build()
+                                .build(),
+                        new ToolCallObservationAdvisor()
                 )
                 .defaultTools(
                         new FetchUrlTool(),
