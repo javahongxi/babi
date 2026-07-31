@@ -3,7 +3,7 @@ package org.hongxi.babi.spring.config;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
-import org.hongxi.babi.spring.eventbus.ToolEventBus;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.spring.tool.CodeSearchTool;
 import org.hongxi.babi.spring.tool.FetchUrlTool;
 import org.hongxi.babi.spring.tool.FileEditTool;

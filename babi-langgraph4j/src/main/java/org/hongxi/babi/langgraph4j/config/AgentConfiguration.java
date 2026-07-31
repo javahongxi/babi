@@ -6,7 +6,7 @@ import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
-import org.hongxi.babi.langgraph4j.eventbus.ToolEventBus;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.langgraph4j.tool.*;
 import org.hongxi.babi.common.util.AgentUtils;

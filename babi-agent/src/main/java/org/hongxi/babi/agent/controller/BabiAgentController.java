@@ -9,7 +9,7 @@ import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
-import org.hongxi.babi.agent.eventbus.ToolEventBus;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.codec.ServerSentEvent;

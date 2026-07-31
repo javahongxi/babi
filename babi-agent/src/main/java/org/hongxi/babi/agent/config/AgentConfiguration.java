@@ -7,7 +7,7 @@ import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.workspace.LocalFsMode;
-import org.hongxi.babi.agent.eventbus.ToolEventBus;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;

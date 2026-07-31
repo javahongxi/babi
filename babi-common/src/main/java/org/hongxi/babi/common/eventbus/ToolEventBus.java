@@ -1,4 +1,4 @@
-package org.hongxi.babi.agent.eventbus;
+package org.hongxi.babi.common.eventbus;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
@@ -10,7 +10,7 @@ import java.util.Map;
  *
  * <p>用于解耦工具调用事件的产生和消费：
  * <ul>
- *   <li>产生端：ToolNotificationMiddleware 在工具执行前发布事件</li>
+ *   <li>产生端：工具调用时发布事件</li>
  *   <li>消费端：SSE Controller 订阅事件并推送给前端</li>
  * </ul>
  *

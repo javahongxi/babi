@@ -6,7 +6,7 @@ import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.middleware.ActingInput;
 import io.agentscope.core.middleware.MiddlewareBase;
-import org.hongxi.babi.agent.eventbus.ToolEventBus;
+import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
