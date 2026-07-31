@@ -82,11 +82,6 @@ public class AgentConfiguration {
                 .build();
     }
 
-    @Bean
-    public SkillTool skillTools(Path workspacePath) {
-        return new SkillTool(workspacePath);
-    }
-
     /**
      * Custom {@link ToolCallingManager} that wraps the default implementation
      * to publish tool-call events to the {@link ToolEventBus} before execution.
@@ -106,8 +101,8 @@ public class AgentConfiguration {
             ChatModel chatModel,
             ChatMemory chatMemory,
             Path workspacePath,
-            ToolCallingManager toolCallingManager,
-            SkillTool skillTool) {
+            ToolCallingManager toolCallingManager) {
+        SkillTool skillTool = new SkillTool(workspacePath);
 
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
