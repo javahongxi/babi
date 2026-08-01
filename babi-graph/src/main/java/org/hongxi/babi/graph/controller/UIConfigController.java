@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.controller;
+package org.hongxi.babi.graph.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

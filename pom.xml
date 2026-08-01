@@ -19,7 +19,7 @@
     <modules>
         <module>babi-common</module>
         <module>babi-agent</module>
-        <module>babi-langgraph4j</module>
+        <module>babi-graph</module>
         <module>babi-spring</module>
     </modules>
 

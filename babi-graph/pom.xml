@@ -9,8 +9,8 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>babi-langgraph4j</artifactId>
-    <name>Babi LangGraph4J</name>
+    <artifactId>babi-graph</artifactId>
+    <name>Babi Graph</name>
     <description>Coding Agent based on LangGraph4J + LangChain4J</description>
 
     <dependencies>

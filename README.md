@@ -7,7 +7,7 @@
 | 模块                 | 技术栈                                    | 定位                        |
 |----------------------|-------------------------------------------|-----------------------------|
 | **babi-agent**       | AgentScope Java 2.0.0 + Spring Boot 4.1.0 | 主版本，功能完整            |
-| **babi-langgraph4j** | LangGraph4j 1.8.20 + Spring Boot 4.1.0    | 替代实现，基于图编排        |
+| **babi-graph**       | LangGraph4j 1.8.20 + Spring Boot 4.1.0    | 替代实现，基于图编排        |
 | **babi-spring**      | Spring AI 2.0.0 + Spring Boot 4.1.0       | 轻量实现，纯 Spring AI 驱动 |
 
 另有 Python 实现版本：
@@ -40,16 +40,16 @@
 | 模块                 | 模型              | SDK                                   | 环境变量            |
 |----------------------|-------------------|---------------------------------------|---------------------|
 | **babi-agent**       | Qwen-Plus         | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
-| **babi-langgraph4j** | DeepSeek-V4-Flash | langchain4j-open-ai                   | `DEEPSEEK_API_KEY`  |
+| **babi-graph**       | DeepSeek-V4-Flash | langchain4j-open-ai                   | `DEEPSEEK_API_KEY`  |
 | **babi-spring**      | DeepSeek-V4-Flash | spring-ai-starter-model-deepseek      | `DEEPSEEK_API_KEY`  |
 
-> babi-langgraph4j 支持在 Qwen / DeepSeek 之间自由切换，切换至 Qwen 时使用 `DASHSCOPE_API_KEY`。
+> babi-graph 支持在 Qwen / DeepSeek 之间自由切换，切换至 Qwen 时使用 `DASHSCOPE_API_KEY`。
 
 ```bash
 # 阿里云百炼 API Key（babi-agent 使用）
 export DASHSCOPE_API_KEY=your_api_key
 
-# DeepSeek API Key（babi-langgraph4j、babi-spring 使用）
+# DeepSeek API Key（babi-graph、babi-spring 使用）
 export DEEPSEEK_API_KEY=your_api_key
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
@@ -65,7 +65,7 @@ export GITHUB_TOKEN=your_github_token
 mvn spring-boot:run -pl babi-agent
 
 # LangGraph4j 版本
-mvn spring-boot:run -pl babi-langgraph4j
+mvn spring-boot:run -pl babi-graph
 
 # Spring AI 版本
 mvn spring-boot:run -pl babi-spring
@@ -75,7 +75,7 @@ mvn spring-boot:run -pl babi-spring
 
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
 
-> **流式行为差异**：babi-agent 和 babi-langgraph4j 均为全程真流式输出（工具调用期间也能逐 token 推送）；babi-spring 在工具执行期间前端短暂等待，最终回答仍为流式。
+> **流式行为差异**：babi-agent 和 babi-graph 均为全程真流式输出（工具调用期间也能逐 token 推送）；babi-spring 在工具执行期间前端短暂等待，最终回答仍为流式。
 
 ### 命令行模式
 

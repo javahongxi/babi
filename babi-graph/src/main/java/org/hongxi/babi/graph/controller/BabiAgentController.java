@@ -1,8 +1,8 @@
-package org.hongxi.babi.langgraph4j.controller;
+package org.hongxi.babi.graph.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
-import org.hongxi.babi.langgraph4j.service.BabiService;
+import org.hongxi.babi.graph.service.BabiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;

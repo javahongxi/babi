@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: babi-langgraph4j
+    name: babi-graph
 
 babi:
   agent:

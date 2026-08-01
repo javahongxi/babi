@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.tool;
+package org.hongxi.babi.graph.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;

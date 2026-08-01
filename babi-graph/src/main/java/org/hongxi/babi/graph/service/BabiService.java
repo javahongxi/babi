@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.service;
+package org.hongxi.babi.graph.service;
 
 import dev.langchain4j.data.message.UserMessage;
 import org.bsc.langgraph4j.CompiledGraph;

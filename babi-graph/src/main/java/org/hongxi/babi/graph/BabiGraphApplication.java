@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j;
+package org.hongxi.babi.graph;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 
 /**
- * Spring Boot application entry point for Babi Agent (LangGraph4J edition).
+ * Spring Boot application entry point for Babi Agent (Graph edition).
  *
  * <p>Provides a web API for the BabiAgent via BabiController,
  * supporting SSE streaming chat endpoints.
@@ -16,13 +16,13 @@ import org.springframework.core.env.Environment;
  * <p><b>Run:</b>
  * <pre>
  *   export DEEPSEEK_API_KEY=your_key  # or DASHSCOPE_API_KEY, depending on application.yml
- *   mvn spring-boot:run -pl babi-langgraph4j
+ *   mvn spring-boot:run -pl babi-graph
  * </pre>
  */
 @SpringBootApplication
-public class BabiLangGraphApplication {
+public class BabiGraphApplication {
     public static void main(String[] args) {
-        SpringApplication.run(BabiLangGraphApplication.class, args);
+        SpringApplication.run(BabiGraphApplication.class, args);
     }
 
     @Bean
@@ -31,7 +31,7 @@ public class BabiLangGraphApplication {
             String port = environment.getProperty("server.port", "8080");
             String accessUrl = "http://localhost:" + port;
             System.out.println("\n========================================");
-            System.out.println("Babi Agent (LangGraph4J) is ready!");
+            System.out.println("Babi Agent (Graph) is ready!");
             System.out.println("Chat with your agent: " + accessUrl);
             System.out.println("========================================\n");
         };

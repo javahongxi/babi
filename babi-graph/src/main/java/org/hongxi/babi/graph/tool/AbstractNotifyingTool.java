@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.tool;
+package org.hongxi.babi.graph.tool;
 
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.util.SessionContextHolder;

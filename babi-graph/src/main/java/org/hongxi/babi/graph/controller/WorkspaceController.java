@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.controller;
+package org.hongxi.babi.graph.controller;
 
 import org.hongxi.babi.common.util.AgentUtils;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,4 +1,4 @@
-package org.hongxi.babi.langgraph4j.config;
+package org.hongxi.babi.graph.config;
 
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -9,7 +9,7 @@ import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
-import org.hongxi.babi.langgraph4j.tool.*;
+import org.hongxi.babi.graph.tool.*;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
