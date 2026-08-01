@@ -30,14 +30,27 @@
 - **GitHub 集成** — 通过 API 操作 Issues、PR、仓库、Pinned Repos 等
 - **Skills 扩展** — Markdown 定义的可复用工作流指令，支持全局、Babi 专属、项目级三级加载
 - **任务追踪** — 内置 Todo 列表，可视化多步骤任务进度
-- **双端交互** — Web 聊天界面（Markdown 渲染 + 工具状态可视化）与 CLI 两种模式
+- **双端交互** — Web 聊天界面（Markdown 渲染 + 工具状态可视化）与 CLI 两种模式（CLI 仅 babi-agent 支持）
 - **会话持久化** — 基于文件的会话存储，跨重启保持对话上下文
 
 ## 环境准备
 
+各模块使用不同的模型与 SDK：
+
+| 模块                 | 模型              | SDK                                   | 环境变量            |
+|----------------------|-------------------|---------------------------------------|---------------------|
+| **babi-agent**       | Qwen-Plus         | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
+| **babi-langgraph4j** | DeepSeek-V4-Flash | langchain4j-open-ai                   | `DEEPSEEK_API_KEY`  |
+| **babi-spring**      | DeepSeek-V4-Flash | spring-ai-starter-model-deepseek      | `DEEPSEEK_API_KEY`  |
+
+> babi-langgraph4j 支持在 Qwen / DeepSeek 之间自由切换，切换至 Qwen 时使用 `DASHSCOPE_API_KEY`。
+
 ```bash
-# 阿里云百炼 API Key （或 DEEPSEEK_API_KEY）
+# 阿里云百炼 API Key（babi-agent 使用）
 export DASHSCOPE_API_KEY=your_api_key
+
+# DeepSeek API Key（babi-langgraph4j、babi-spring 使用）
+export DEEPSEEK_API_KEY=your_api_key
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
 export GITHUB_TOKEN=your_github_token
