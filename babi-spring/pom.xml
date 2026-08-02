@@ -26,8 +26,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Spring AI DeepSeek (DashScope is OpenAI-compatible,
-        DeepSeek module handles streaming tool calls correctly) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-deepseek</artifactId>
