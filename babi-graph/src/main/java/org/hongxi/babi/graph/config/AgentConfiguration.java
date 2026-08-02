@@ -71,7 +71,7 @@ public class AgentConfiguration {
             MemorySaver memorySaver) throws GraphStateException {
 
         // DashScope via OpenAI-compatible API
-        var streamingModel = OpenAiStreamingChatModel.builder()
+        var streamingChatModel = OpenAiStreamingChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
@@ -99,17 +99,19 @@ public class AgentConfiguration {
 
         // Build and compile the agent graph
         var graph = AgentExecutor.builder()
-                .chatModel(streamingModel)
+                .chatModel(streamingChatModel)
                 .systemMessage(SystemMessage.from(sysPrompt))
-                .toolsFromObject(fetchUrlTool)
-                .toolsFromObject(httpRequestTool)
-                .toolsFromObject(gitHubApiTool)
-                .toolsFromObject(fileReadTool)
-                .toolsFromObject(fileEditTool)
-                .toolsFromObject(shellCommandTool)
-                .toolsFromObject(codeSearchTool)
-                .toolsFromObject(skillTool)
-                .toolsFromObject(webSearchTool)
+                .toolsFromObject(
+                        fetchUrlTool,
+                        httpRequestTool,
+                        webSearchTool,
+                        gitHubApiTool,
+                        fileReadTool,
+                        fileEditTool,
+                        shellCommandTool,
+                        codeSearchTool,
+                        skillTool
+                )
                 .build();
 
         var compileConfig = CompileConfig.builder()
