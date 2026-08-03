@@ -30,7 +30,7 @@
 - **GitHub 集成** — 通过 API 操作 Issues、PR、仓库、Pinned Repos 等
 - **Skills 扩展** — Markdown 定义的可复用工作流指令，支持全局、Babi 专属、项目级三级加载
 - **任务追踪** — 内置 Todo 列表，可视化多步骤任务进度
-- **双端交互** — Web 聊天界面（Markdown 渲染 + 工具状态可视化）与 CLI 两种模式（CLI 仅 babi-agent 支持）
+- **双端交互** — Web 聊天界面（Markdown 渲染 + 工具状态可视化）与 CLI 两种模式
 - **会话持久化** — 基于文件的会话存储，跨重启保持对话上下文
 
 ## 环境准备
