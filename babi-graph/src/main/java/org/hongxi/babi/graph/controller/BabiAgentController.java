@@ -55,19 +55,27 @@ public class BabiAgentController {
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
-        log.info(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
+        log.debug(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
 
         // 1. Tool event stream from ToolEventBus
         Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
                 toolEventBus.subscribe(sessionId)
                         .map(event -> {
-                            Map<String, Object> data = new LinkedHashMap<>();
-                            data.put("type", "tool_call");
-                            data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
-                            if (event.data() != null) {
-                                data.put("toolInput", toJson(event.data()));
+                            if ("TOOL_RESULT".equals(event.eventType())) {
+                                String state = event.state() != null ? event.state().name() : "UNKNOWN";
+                                return sse("tool_result", Map.of(
+                                        "type", "tool_result",
+                                        "tool", event.toolName() != null ? event.toolName() : "unknown",
+                                        "state", state));
+                            } else {
+                                Map<String, Object> data = new LinkedHashMap<>();
+                                data.put("type", "tool_call");
+                                data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
+                                if (event.data() != null) {
+                                    data.put("toolInput", toJson(event.data()));
+                                }
+                                return sse("tool_call", data);
                             }
-                            return sse("tool_call", data);
                         })
         );
 

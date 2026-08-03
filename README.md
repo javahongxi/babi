@@ -37,19 +37,19 @@
 
 各模块使用不同的模型与 SDK：
 
-| 模块                 | 模型              | SDK                                   | 环境变量            |
-|----------------------|-------------------|---------------------------------------|---------------------|
-| **babi-agent**       | Qwen-Plus         | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
-| **babi-graph**       | DeepSeek-V4-Flash | langchain4j-open-ai                   | `DEEPSEEK_API_KEY`  |
-| **babi-spring**      | DeepSeek-V4-Flash | spring-ai-starter-model-deepseek      | `DEEPSEEK_API_KEY`  |
+| 模块            | 模型              | SDK                                   | 环境变量            |
+|-----------------|-------------------|---------------------------------------|---------------------|
+| **babi-agent**  | Qwen-Plus         | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
+| **babi-graph**  | Qwen-Plus         | langchain4j-open-ai                   | `DASHSCOPE_API_KEY` |
+| **babi-spring** | DeepSeek-V4-Flash | spring-ai-starter-model-deepseek      | `DEEPSEEK_API_KEY`  |
 
-> babi-graph 支持在 Qwen / DeepSeek 之间自由切换，切换至 Qwen 时使用 `DASHSCOPE_API_KEY`。
+> babi-graph 支持在 Qwen / DeepSeek 之间自由切换，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
 
 ```bash
-# 阿里云百炼 API Key（babi-agent 使用）
+# 阿里云百炼 API Key（babi-agent、babi-graph 使用）
 export DASHSCOPE_API_KEY=your_api_key
 
-# DeepSeek API Key（babi-graph、babi-spring 使用）
+# DeepSeek API Key（babi-spring 使用）
 export DEEPSEEK_API_KEY=your_api_key
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）

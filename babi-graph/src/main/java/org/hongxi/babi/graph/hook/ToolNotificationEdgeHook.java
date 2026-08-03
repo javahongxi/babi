@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessageType;
+import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.action.AsyncCommandAction;
 import org.bsc.langgraph4j.action.Command;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -43,10 +45,13 @@ public class ToolNotificationEdgeHook implements EdgeHook.WrapCall<AgentExecutor
     @Override
     public CompletableFuture<Command> applyWrap(String sourceId,
                                                  AgentExecutor.State state,
-                                                 org.bsc.langgraph4j.RunnableConfig config,
+                                                 RunnableConfig config,
                                                  AsyncCommandAction<AgentExecutor.State> action) {
         publishToolCallEvents(state);
-        return action.apply(state, config);
+        return action.apply(state, config)
+                .whenComplete((command, ex) -> {
+                    publishToolResultEvents(state, resolveToolState(ex));
+                });
     }
 
     /**
@@ -76,6 +81,56 @@ public class ToolNotificationEdgeHook implements EdgeHook.WrapCall<AgentExecutor
                         }
                     }
                 });
+    }
+
+    /**
+     * Publish tool result events for all tool requests in the last AI message.
+     */
+    private void publishToolResultEvents(AgentExecutor.State state, ToolEventBus.ToolState resultState) {
+        String sessionId = SessionContextHolder.getSessionId();
+        if (sessionId == null || eventBus == null) {
+            return;
+        }
+
+        state.lastMessage()
+                .filter(m -> ChatMessageType.AI == m.type())
+                .map(m -> (AiMessage) m)
+                .filter(AiMessage::hasToolExecutionRequests)
+                .ifPresent(ai -> {
+                    for (var request : ai.toolExecutionRequests()) {
+                        try {
+                            eventBus.publish(ToolEventBus.ToolEvent.toolResult(
+                                    sessionId, request.name(), resultState));
+                            log.debug("Published TOOL_RESULT event: session={}, tool={}, state={}",
+                                    sessionId, request.name(), resultState);
+                        } catch (Exception e) {
+                            log.debug("Failed to publish tool result for {}: {}",
+                                    request.name(), e.getMessage());
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Resolve the tool execution state from the completion exception.
+     * <ul>
+     *   <li>{@code null} → {@link ToolEventBus.ToolState#SUCCESS}</li>
+     *   <li>{@link CancellationException} (or cause chain) → {@link ToolEventBus.ToolState#INTERRUPTED}</li>
+     *   <li>Other exception → {@link ToolEventBus.ToolState#ERROR}</li>
+     * </ul>
+     */
+    private static ToolEventBus.ToolState resolveToolState(Throwable ex) {
+        if (ex == null) {
+            return ToolEventBus.ToolState.SUCCESS;
+        }
+        Throwable cause = ex;
+        while (cause != null) {
+            if (cause instanceof CancellationException) {
+                return ToolEventBus.ToolState.INTERRUPTED;
+            }
+            cause = cause.getCause();
+        }
+        return ToolEventBus.ToolState.ERROR;
     }
 
     private static Map<String, Object> parseArguments(String arguments) {

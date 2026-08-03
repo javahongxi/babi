@@ -32,10 +32,13 @@ public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
-    @Value("${babi.agent.model.name:deepseek-v4-flash}")
+    @Value("${babi.agent.recursion-limit:25}")
+    private int recursionLimit;
+
+    @Value("${babi.agent.model.name:}")
     private String modelName;
 
-    @Value("${babi.agent.model.base-url:https://api.deepseek.com}")
+    @Value("${babi.agent.model.base-url:}")
     private String baseUrl;
 
     @Value("${babi.agent.model.api-key:}")
@@ -121,9 +124,10 @@ public class AgentConfiguration {
 
         var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)
+                .recursionLimit(recursionLimit)
                 .build();
 
-        log.info("LangGraph4J agent compiled with streaming model: {}", modelName);
+        log.info("LangGraph4J agent compiled with streaming model: {}, recursionLimit: {}", modelName, recursionLimit);
         return graph.compile(compileConfig);
     }
 }

@@ -14,6 +14,9 @@ import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.util.SessionContextHolder;
+import org.hongxi.babi.spring.service.BabiService;
+import org.springframework.ai.model.tool.internal.ToolCallReactiveContextHolder;
+import reactor.util.context.ContextView;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,14 +55,43 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
     @Override
     public ToolExecutionResult executeToolCalls(Prompt prompt, ChatResponse chatResponse) {
         publishToolCallEvents(chatResponse);
-        return delegate.executeToolCalls(prompt, chatResponse);
+        try {
+            ToolExecutionResult result = delegate.executeToolCalls(prompt, chatResponse);
+            publishToolResultEvents(chatResponse, ToolEventBus.ToolState.SUCCESS);
+            return result;
+        } catch (Exception e) {
+            publishToolResultEvents(chatResponse, resolveToolState(e));
+            throw e;
+        }
+    }
+
+    /**
+     * Resolve the session ID by checking multiple propagation mechanisms:
+     * <ol>
+     *   <li>Reactor Context (via {@link ToolCallReactiveContextHolder}) — for streaming mode
+     *       where tool execution runs on a different thread</li>
+     *   <li>{@link SessionContextHolder} (ThreadLocal) — for synchronous (blocking) mode</li>
+     * </ol>
+     */
+    private String resolveSessionId() {
+        // 1. Try Reactor Context (set by ToolCallingAdvisor on the tool-execution thread)
+        try {
+            ContextView ctx = ToolCallReactiveContextHolder.getContext();
+            if (ctx != null && ctx.hasKey(BabiService.SESSION_ID_CTX_KEY)) {
+                return ctx.get(BabiService.SESSION_ID_CTX_KEY);
+            }
+        } catch (Exception ignored) {
+            // ToolCallReactiveContextHolder may throw if not set
+        }
+        // 2. Fall back to ThreadLocal (works for synchronous call path)
+        return SessionContextHolder.getSessionId();
     }
 
     /**
      * Extract tool calls from the chat response and publish each as a ToolEvent.
      */
     private void publishToolCallEvents(ChatResponse chatResponse) {
-        String sessionId = SessionContextHolder.getSessionId();
+        String sessionId = resolveSessionId();
         if (sessionId == null || chatResponse == null) {
             return;
         }
@@ -80,6 +112,53 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
                 }
             }
         }
+    }
+
+    /**
+     * Publish tool result events after tool execution completes.
+     */
+    private void publishToolResultEvents(ChatResponse chatResponse, ToolEventBus.ToolState resultState) {
+        String sessionId = resolveSessionId();
+        if (sessionId == null || chatResponse == null) {
+            return;
+        }
+
+        for (Generation generation : chatResponse.getResults()) {
+            AssistantMessage assistantMessage = generation.getOutput();
+            if (assistantMessage == null || assistantMessage.getToolCalls() == null) {
+                continue;
+            }
+            for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
+                String toolName = toolCall.name() != null ? toolCall.name() : "unknown";
+                try {
+                    eventBus.publish(ToolEventBus.ToolEvent.toolResult(sessionId, toolName, resultState));
+                    log.debug("Published TOOL_RESULT event: session={}, tool={}, state={}",
+                            sessionId, toolName, resultState);
+                } catch (Exception e) {
+                    log.debug("Failed to publish tool result for {}: {}", toolName, e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Resolve the tool execution state from the exception.
+     * <ul>
+     *   <li>{@link InterruptedException} or {@link java.util.concurrent.CancellationException}
+     *       (or in cause chain) → {@link ToolEventBus.ToolState#INTERRUPTED}</li>
+     *   <li>Other exception → {@link ToolEventBus.ToolState#ERROR}</li>
+     * </ul>
+     */
+    private static ToolEventBus.ToolState resolveToolState(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof InterruptedException
+                    || cause instanceof java.util.concurrent.CancellationException) {
+                return ToolEventBus.ToolState.INTERRUPTED;
+            }
+            cause = cause.getCause();
+        }
+        return ToolEventBus.ToolState.ERROR;
     }
 
     private static Map<String, Object> parseArguments(String arguments) {

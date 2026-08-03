@@ -93,14 +93,14 @@ public class BabiAgentController {
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
 
-        log.info(">>> streamChat request: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
+        log.debug(">>> streamChat request: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
 
         // Deduplication: reject if this session already has an in-flight request
         if (!activeSessions.add(sessionId)) {
             log.warn(">>> DUPLICATE request rejected: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
             return Flux.just(sse("done", Map.of("type", "done", "duplicate", true)));
         }
-        log.info(">>> Request accepted, starting agent for session='{}'", sessionId);
+        log.debug(">>> Request accepted, starting agent for session='{}'", sessionId);
 
         RuntimeContext ctx = RuntimeContext.builder()
                 .sessionId(sessionId)
@@ -110,13 +110,21 @@ public class BabiAgentController {
         Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
                 toolEventBus.subscribe(sessionId)
                         .map(event -> {
-                            Map<String, Object> data = new LinkedHashMap<>();
-                            data.put("type", "tool_call");
-                            data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
-                            if (event.data() != null) {
-                                data.put("toolInput", toJson(event.data()));
+                            if ("TOOL_RESULT".equals(event.eventType())) {
+                                String state = event.state() != null ? event.state().name() : "UNKNOWN";
+                                return sse("tool_result", Map.of(
+                                        "type", "tool_result",
+                                        "tool", event.toolName() != null ? event.toolName() : "unknown",
+                                        "state", state));
+                            } else {
+                                Map<String, Object> data = new LinkedHashMap<>();
+                                data.put("type", "tool_call");
+                                data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
+                                if (event.data() != null) {
+                                    data.put("toolInput", toJson(event.data()));
+                                }
+                                return sse("tool_call", data);
                             }
-                            return sse("tool_call", data);
                         })
         );
 

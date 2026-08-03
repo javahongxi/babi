@@ -81,13 +81,21 @@ public class BabiAgentController {
         Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
                 toolEventBus.subscribe(sessionId)
                         .map(event -> {
-                            Map<String, Object> data = new LinkedHashMap<>();
-                            data.put("type", "tool_call");
-                            data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
-                            if (event.data() != null) {
-                                data.put("toolInput", toJson(event.data()));
+                            if ("TOOL_RESULT".equals(event.eventType())) {
+                                String state = event.state() != null ? event.state().name() : "UNKNOWN";
+                                return sse("tool_result", Map.of(
+                                        "type", "tool_result",
+                                        "tool", event.toolName() != null ? event.toolName() : "unknown",
+                                        "state", state));
+                            } else {
+                                Map<String, Object> data = new LinkedHashMap<>();
+                                data.put("type", "tool_call");
+                                data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
+                                if (event.data() != null) {
+                                    data.put("toolInput", toJson(event.data()));
+                                }
+                                return sse("tool_call", data);
                             }
-                            return sse("tool_call", data);
                         })
         );
 

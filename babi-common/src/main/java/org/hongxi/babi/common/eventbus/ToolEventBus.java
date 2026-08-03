@@ -41,18 +41,36 @@ public class ToolEventBus {
     }
 
     /**
+     * 工具执行状态枚举
+     */
+    public enum ToolState {
+        /** 工具执行成功 */
+        SUCCESS,
+        /** 工具执行失败（抛出异常） */
+        ERROR,
+        /** 工具执行被中断（客户端断开、取消请求等） */
+        INTERRUPTED
+    }
+
+    /**
      * 工具事件记录
      *
      * @param sessionId 会话 ID
-     * @param eventType 事件类型（TOOL_CALL）
+     * @param eventType 事件类型（TOOL_CALL / TOOL_RESULT）
      * @param toolName  工具名称
      * @param data      事件数据（工具输入参数）
+     * @param state     工具执行状态，仅 TOOL_RESULT 事件有值
      */
     public record ToolEvent(
             String sessionId,
             String eventType,
             String toolName,
-            Map<String, Object> data) {
+            Map<String, Object> data,
+            ToolState state) {
+
+        public ToolEvent(String sessionId, String eventType, String toolName, Map<String, Object> data) {
+            this(sessionId, eventType, toolName, data, null);
+        }
 
         /**
          * 创建工具调用事件
@@ -62,6 +80,20 @@ public class ToolEventBus {
                 String toolName,
                 Map<String, Object> input) {
             return new ToolEvent(sessionId, "TOOL_CALL", toolName, input);
+        }
+
+        /**
+         * 创建工具执行结果事件
+         *
+         * @param sessionId 会话 ID
+         * @param toolName  工具名称
+         * @param state     执行状态
+         */
+        public static ToolEvent toolResult(
+                String sessionId,
+                String toolName,
+                ToolState state) {
+            return new ToolEvent(sessionId, "TOOL_RESULT", toolName, null, state);
         }
     }
 }

@@ -4,10 +4,35 @@ server:
 spring:
   application:
     name: babi-graph
+  profiles:
+    active: dashscope
 
 babi:
   agent:
     workspace: ~/babi-workspace
+    recursion-limit: 50
+
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dashscope
+babi:
+  agent:
+    model:
+      name: qwen-plus
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${DASHSCOPE_API_KEY:}
+
+
+---
+spring:
+  config:
+    activate:
+      on-profile: deepseek
+babi:
+  agent:
     model:
       name: deepseek-v4-flash
       base-url: https://api.deepseek.com

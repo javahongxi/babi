@@ -23,6 +23,9 @@ public class BabiService {
 
     private static final Logger log = LoggerFactory.getLogger(BabiService.class);
 
+    /** Reactor Context key for propagating sessionId across thread boundaries. */
+    public static final String SESSION_ID_CTX_KEY = "babi.sessionId";
+
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
 
@@ -55,6 +58,7 @@ public class BabiService {
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
                 .stream()
                 .content()
+                .contextWrite(ctx -> ctx.put(SESSION_ID_CTX_KEY, sessionId))
                 .doFinally(sig -> SessionContextHolder.clear());
     }
 

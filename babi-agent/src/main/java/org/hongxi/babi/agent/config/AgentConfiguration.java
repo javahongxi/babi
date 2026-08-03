@@ -134,7 +134,7 @@ public class AgentConfiguration {
                         // UNRESTRICTED allows reading/writing any local file path
                         .mode(LocalFsMode.UNRESTRICTED))
                 .stateStore(stateStore)
-                .maxIters(20)
+                .maxIters(50)
                 .maxRetries(2)              // Tool calls retry up to 2 times on failure
                 .enableTaskList()
                 .enablePlanMode()            // Plan mode: investigate first, then execute
