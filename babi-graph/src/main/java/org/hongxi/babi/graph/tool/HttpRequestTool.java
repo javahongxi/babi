@@ -2,7 +2,6 @@ package org.hongxi.babi.graph.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.tool.HttpRequestLogic;
 
 import java.net.http.HttpClient;
@@ -13,12 +12,11 @@ import java.util.Map;
  *
  * <p>Delegates to {@link HttpRequestLogic} for the actual HTTP request processing.
  */
-public class HttpRequestTool extends AbstractNotifyingTool {
+public class HttpRequestTool {
 
     private final HttpClient client;
 
-    public HttpRequestTool(ToolEventBus eventBus) {
-        super(eventBus);
+    public HttpRequestTool() {
         this.client = HttpRequestLogic.createHttpClient();
     }
 
@@ -29,7 +27,6 @@ public class HttpRequestTool extends AbstractNotifyingTool {
             @P("Optional request headers as JSON object") Map<String, String> headers,
             @P("Optional request body (string)") String body) {
 
-        emitEvent("http_request", Map.of("method", method, "url", url));
         return HttpRequestLogic.httpRequest(client, method, url, headers, body);
     }
 }

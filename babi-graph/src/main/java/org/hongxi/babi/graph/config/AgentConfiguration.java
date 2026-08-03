@@ -5,10 +5,12 @@ import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphStateException;
+import org.bsc.langgraph4j.agent.Agent;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
+import org.hongxi.babi.graph.hook.ToolNotificationEdgeHook;
 import org.hongxi.babi.graph.tool.*;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
@@ -78,15 +80,15 @@ public class AgentConfiguration {
                 .build();
 
         // Create tool instances
-        var fetchUrlTool = new FetchUrlTool(toolEventBus);
-        var httpRequestTool = new HttpRequestTool(toolEventBus);
-        var gitHubApiTool = new GitHubApiTool(toolEventBus);
-        var fileReadTool = new FileReadTool(toolEventBus);
-        var fileEditTool = new FileEditTool(toolEventBus);
-        var shellCommandTool = new ShellCommandTool(workspacePath.toString(), toolEventBus);
-        var codeSearchTool = new CodeSearchTool(toolEventBus);
-        var skillTool = new SkillTool(workspacePath, toolEventBus);
-        var webSearchTool = new WebSearchTool(toolEventBus);
+        var fetchUrlTool = new FetchUrlTool();
+        var httpRequestTool = new HttpRequestTool();
+        var gitHubApiTool = new GitHubApiTool();
+        var fileReadTool = new FileReadTool();
+        var fileEditTool = new FileEditTool();
+        var shellCommandTool = new ShellCommandTool(workspacePath.toString());
+        var codeSearchTool = new CodeSearchTool();
+        var skillTool = new SkillTool(workspacePath);
+        var webSearchTool = new WebSearchTool();
 
         // Build system prompt
         String sysPrompt = CodingSystemPrompt.build(
@@ -97,7 +99,7 @@ public class AgentConfiguration {
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         sysPrompt += "\n\nCurrent date and time: " + now;
 
-        // Build and compile the agent graph
+        // Build the agent graph
         var graph = AgentExecutor.builder()
                 .chatModel(streamingChatModel)
                 .systemMessage(SystemMessage.from(sysPrompt))
@@ -113,6 +115,9 @@ public class AgentConfiguration {
                         skillTool
                 )
                 .build();
+
+        // Register tool-call notification hook on the "action" edge
+        graph.addWrapCallEdgeHook(Agent.ACTION_LABEL, new ToolNotificationEdgeHook(toolEventBus));
 
         var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)

@@ -2,11 +2,9 @@ package org.hongxi.babi.graph.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.tool.WebSearchLogic;
 
 import java.net.http.HttpClient;
-import java.util.Map;
 
 /**
  * Tool for searching the web using the Tavily Search API.
@@ -17,12 +15,11 @@ import java.util.Map;
  * search enabled via {@code enableSearch(true)}. This tool is only for the
  * LangGraph4j module where the model lacks native search capability.
  */
-public class WebSearchTool extends AbstractNotifyingTool {
+public class WebSearchTool {
 
     private final HttpClient client;
 
-    public WebSearchTool(ToolEventBus eventBus) {
-        super(eventBus);
+    public WebSearchTool() {
         this.client = WebSearchLogic.createHttpClient();
     }
 
@@ -34,7 +31,6 @@ public class WebSearchTool extends AbstractNotifyingTool {
             @P("Maximum number of results to return (1-10, default 5).") int maxResults,
             @P("Limit results to the last N days (0 = no limit, 7 = recent news, 30 = monthly). Use 0 unless freshness matters.") int days) {
 
-        emitEvent("web_search", Map.of("query", query));
         return WebSearchLogic.webSearch(client, query, maxResults, days);
     }
 }

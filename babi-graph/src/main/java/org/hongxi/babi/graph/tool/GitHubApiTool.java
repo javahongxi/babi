@@ -2,7 +2,6 @@ package org.hongxi.babi.graph.tool;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
-import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.tool.GitHubApiLogic;
 
 import java.net.http.HttpClient;
@@ -16,12 +15,11 @@ import java.util.Map;
  *
  * <p>Delegates to {@link GitHubApiLogic} for the actual API request processing.
  */
-public class GitHubApiTool extends AbstractNotifyingTool {
+public class GitHubApiTool {
 
     private final HttpClient client;
 
-    public GitHubApiTool(ToolEventBus eventBus) {
-        super(eventBus);
+    public GitHubApiTool() {
         this.client = GitHubApiLogic.createHttpClient();
     }
 
@@ -32,7 +30,6 @@ public class GitHubApiTool extends AbstractNotifyingTool {
             @P("Optional JSON request body (for POST/PUT/PATCH)") String body,
             @P("Optional query parameters as JSON object") Map<String, String> queryParams) {
 
-        emitEvent("github_api_request", Map.of("method", method, "path", path));
         String token = GitHubApiLogic.resolveToken();
         return GitHubApiLogic.githubApiRequest(client, token, method, path, body, queryParams);
     }
@@ -41,7 +38,6 @@ public class GitHubApiTool extends AbstractNotifyingTool {
     public String githubPinnedRepos(
             @P("GitHub username to query pinned repos for") String username) {
 
-        emitEvent("github_pinned_repos", Map.of("username", username));
         String token = GitHubApiLogic.resolveToken();
         return GitHubApiLogic.githubPinnedRepos(client, token, username);
     }
