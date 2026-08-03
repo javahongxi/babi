@@ -139,6 +139,7 @@ public class AgentConfiguration {
         tools.add(new FileEditTool());
         tools.add(new ShellCommandTool(workspacePath.toString()));
         tools.add(new CodeSearchTool());
+        // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());
         }

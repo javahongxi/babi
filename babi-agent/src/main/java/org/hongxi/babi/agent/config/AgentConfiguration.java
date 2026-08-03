@@ -103,6 +103,7 @@ public class AgentConfiguration {
         toolkit.registerTool(new GitHubApiTool());
         SkillTool skillTool = new SkillTool(workspacePath);
         toolkit.registerTool(skillTool);
+        // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             toolkit.registerTool(new WebSearchTool());
         }
