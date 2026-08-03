@@ -5,6 +5,7 @@ import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.spring.advisor.ToolCallObservationAdvisor;
+import org.hongxi.babi.spring.model.DashScopeChatModel;
 import org.hongxi.babi.spring.tool.CodeSearchTool;
 import org.hongxi.babi.spring.tool.FetchUrlTool;
 import org.hongxi.babi.spring.tool.FileEditTool;
@@ -22,9 +23,11 @@ import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,6 +35,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Spring configuration that assembles the Spring AI 2.0 infrastructure.
@@ -49,7 +54,8 @@ import java.time.format.DateTimeFormatter;
  * to publish tool-call events to the {@link ToolEventBus} before execution,
  * replacing AgentScope's {@code ToolNotificationMiddleware}.
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(DashScopeProperties.class)
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
@@ -72,6 +78,16 @@ public class AgentConfiguration {
     public ToolEventBus toolEventBus() {
         log.info("ToolEventBus initialized");
         return new ToolEventBus();
+    }
+
+    @Bean
+    public ChatModel chatModel(DashScopeProperties properties) {
+        return new DashScopeChatModel(
+                properties.apiKey(),
+                properties.chat().model(),
+                properties.chat().temperature(),
+                properties.chat().topP(),
+                properties.chat().enableSearch());
     }
 
     @Bean
@@ -98,10 +114,11 @@ public class AgentConfiguration {
 
     @Bean
     public ChatClient chatClient(
-            ChatClient.Builder chatClientBuilder,
+            ChatModel chatModel,
             ChatMemory chatMemory,
             ToolCallingManager toolCallingManager,
-            Path workspacePath) {
+            Path workspacePath,
+            DashScopeProperties properties) {
         SkillTool skillTool = new SkillTool(workspacePath);
 
         String sysPrompt = CodingSystemPrompt.build(
@@ -113,7 +130,20 @@ public class AgentConfiguration {
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         sysPrompt += "\n\nCurrent date and time: " + now;
 
-        return chatClientBuilder
+        List<Object> tools = new LinkedList<>();
+        tools.add(skillTool);
+        tools.add(new FetchUrlTool());
+        tools.add(new HttpRequestTool());
+        tools.add(new GitHubApiTool());
+        tools.add(new FileReadTool());
+        tools.add(new FileEditTool());
+        tools.add(new ShellCommandTool(workspacePath.toString()));
+        tools.add(new CodeSearchTool());
+        if (!properties.chat().enableSearch()) {
+            tools.add(new WebSearchTool());
+        }
+
+        return ChatClient.builder(chatModel)
                 .defaultSystem(sysPrompt)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build(),
@@ -122,17 +152,7 @@ public class AgentConfiguration {
                                 .build(),
                         new ToolCallObservationAdvisor()
                 )
-                .defaultTools(
-                        new FetchUrlTool(),
-                        new HttpRequestTool(),
-                        new GitHubApiTool(),
-                        new FileReadTool(),
-                        new FileEditTool(),
-                        new ShellCommandTool(workspacePath.toString()),
-                        new CodeSearchTool(),
-                        new WebSearchTool(),
-                        skillTool
-                )
+                .defaultTools(tools.toArray())
                 .build();
     }
 }

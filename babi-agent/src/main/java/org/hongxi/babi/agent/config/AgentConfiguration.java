@@ -7,18 +7,16 @@ import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.workspace.LocalFsMode;
+import org.hongxi.babi.agent.tool.*;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
-import org.hongxi.babi.agent.tool.FetchUrlTool;
-import org.hongxi.babi.agent.tool.GitHubApiTool;
-import org.hongxi.babi.agent.tool.HttpRequestTool;
-import org.hongxi.babi.agent.tool.SkillTool;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -40,18 +38,10 @@ import java.nio.file.Paths;
  * <p>The controller only consumes these beans — it does not know how to build an agent.
  */
 @Configuration
+@EnableConfigurationProperties(DashScopeProperties.class)
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
-
-    @Value("${agentscope.model.api-key:}")
-    private String apiKey;
-
-    @Value("${agentscope.model.name:qwen-plus}")
-    private String modelName;
-
-    @Value("${agentscope.model.fallback:qwen-turbo}")
-    private String fallbackModelName;
 
     /**
      * Resolved workspace directory path, available for other beans that need it.
@@ -103,7 +93,8 @@ public class AgentConfiguration {
     public HarnessAgent harnessAgent(
             Path workspacePath,
             AgentStateStore stateStore,
-            ToolEventBus toolEventBus) {
+            ToolEventBus toolEventBus,
+            DashScopeProperties properties) {
 
         // Register babi-specific custom tools
         Toolkit toolkit = new Toolkit();
@@ -112,6 +103,9 @@ public class AgentConfiguration {
         toolkit.registerTool(new GitHubApiTool());
         SkillTool skillTool = new SkillTool(workspacePath);
         toolkit.registerTool(skillTool);
+        if (!properties.chat().enableSearch()) {
+            toolkit.registerTool(new WebSearchTool());
+        }
 
         // Build system prompt with workspace info and skills
         String sysPrompt = CodingSystemPrompt.build(workspacePath.toString(), skillTool.getSkills().values());
@@ -120,12 +114,12 @@ public class AgentConfiguration {
                 .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
                 .model(DashScopeChatModel.builder()
-                        .apiKey(apiKey)
-                        .modelName(modelName)
+                        .apiKey(properties.apiKey())
+                        .modelName(properties.chat().model())
                         .stream(true)
-                        .enableSearch(true)
+                        .enableSearch(properties.chat().enableSearch())
                         .build())
-                .fallbackModel(fallbackModelName)  // Auto-fallback when primary model is unavailable
+                .fallbackModel(properties.chat().fallbackModel())
                 .toolkit(toolkit)
                 .workspace(workspacePath)
                 .filesystem(new LocalFilesystemSpec()

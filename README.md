@@ -35,22 +35,21 @@
 
 ## 环境准备
 
-各模块使用不同的模型与 SDK：
+各模块默认均使用 Qwen 系列模型：
 
-| 模块            | 模型              | SDK                                   | 环境变量            |
-|-----------------|-------------------|---------------------------------------|---------------------|
-| **babi-agent**  | Qwen-Plus         | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
-| **babi-graph**  | Qwen-Plus         | langchain4j-open-ai                   | `DASHSCOPE_API_KEY` |
-| **babi-spring** | DeepSeek-V4-Flash | spring-ai-starter-model-deepseek      | `DEEPSEEK_API_KEY`  |
+| 模块            | 模型      | SDK                                     | 环境变量            |
+|-----------------|-----------|-----------------------------------------|---------------------|
+| **babi-agent**  | Qwen-Plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
+| **babi-graph**  | Qwen-Plus | langchain4j-open-ai                     | `DASHSCOPE_API_KEY` |
+| **babi-spring** | Qwen-Plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
 
-> babi-graph 支持在 Qwen / DeepSeek 之间自由切换，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
+> babi-graph 支持通过 spring profiles 切换 Qwen / DeepSeek，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
+> 
+> babi-spring 为了让 Spring AI 支持原生 dashscope-sdk-java，自定义了 DashScopeChatModel 实现 ChatModel 接口。
 
 ```bash
-# 阿里云百炼 API Key（babi-agent、babi-graph 使用）
+# 阿里云百炼 API Key
 export DASHSCOPE_API_KEY=your_api_key
-
-# DeepSeek API Key（babi-spring 使用）
-export DEEPSEEK_API_KEY=your_api_key
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
 export GITHUB_TOKEN=your_github_token
@@ -61,7 +60,7 @@ export GITHUB_TOKEN=your_github_token
 ### Web 聊天界面（推荐）
 
 ```bash
-# AgentScope 版本（主版本）
+# AgentScope 版本
 mvn spring-boot:run -pl babi-agent
 
 # LangGraph4j 版本
@@ -71,11 +70,10 @@ mvn spring-boot:run -pl babi-graph
 mvn spring-boot:run -pl babi-spring
 ```
 
-打开浏览器访问 `http://localhost:8900`（AgentScope）、`http://localhost:8901`（LangGraph4j）或 `http://localhost:8902`（Spring AI），即可在聊天界面中与 Babi Agent 交互。
+打开浏览器访问 `http://localhost:8900`（AgentScope）、`http://localhost:8901`（LangGraph4j）或
+`http://localhost:8902`（Spring AI），即可在聊天界面中与 Babi Agent 交互。
 
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
-
-> **流式行为差异**：babi-agent 和 babi-graph 均为全程真流式输出（工具调用期间也能逐 token 推送）；babi-spring 在工具执行期间前端短暂等待，最终回答仍为流式。
 
 ### 命令行模式
 

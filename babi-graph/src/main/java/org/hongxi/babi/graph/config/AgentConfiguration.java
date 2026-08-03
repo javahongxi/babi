@@ -1,6 +1,8 @@
 package org.hongxi.babi.graph.config;
 
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
@@ -16,6 +18,7 @@ import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,21 +31,10 @@ import java.time.format.DateTimeFormatter;
  * Spring configuration that assembles the LangGraph4J Agent infrastructure.
  */
 @Configuration
+@EnableConfigurationProperties(Properties.class)
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
-
-    @Value("${babi.agent.recursion-limit:25}")
-    private int recursionLimit;
-
-    @Value("${babi.agent.model.name:}")
-    private String modelName;
-
-    @Value("${babi.agent.model.base-url:}")
-    private String baseUrl;
-
-    @Value("${babi.agent.model.api-key:}")
-    private String apiKey;
 
     @Bean
     public Path workspacePath(@Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
@@ -70,18 +62,49 @@ public class AgentConfiguration {
     }
 
     @Bean
+    public StreamingChatModel streamingChatModel(Properties properties) {
+        ChatModelProperties chatModelProperties = properties.streamingChatModel();
+        return OpenAiStreamingChatModel.builder()
+                .baseUrl(chatModelProperties.baseUrl())
+                .apiKey(chatModelProperties.apiKey())
+                .organizationId(chatModelProperties.organizationId())
+                .projectId(chatModelProperties.projectId())
+                .modelName(chatModelProperties.modelName())
+                .temperature(chatModelProperties.temperature())
+                .topP(chatModelProperties.topP())
+                .stop(chatModelProperties.stop())
+                .maxTokens(chatModelProperties.maxTokens())
+                .maxCompletionTokens(chatModelProperties.maxCompletionTokens())
+                .presencePenalty(chatModelProperties.presencePenalty())
+                .frequencyPenalty(chatModelProperties.frequencyPenalty())
+                .logitBias(chatModelProperties.logitBias())
+                .responseFormat(chatModelProperties.responseFormat())
+                .seed(chatModelProperties.seed())
+                .user(chatModelProperties.user())
+                .strictTools(chatModelProperties.strictTools())
+                .parallelToolCalls(chatModelProperties.parallelToolCalls())
+                .store(chatModelProperties.store())
+                .metadata(chatModelProperties.metadata())
+                .serviceTier(chatModelProperties.serviceTier())
+                .defaultRequestParameters(OpenAiChatRequestParameters.builder()
+                        .reasoningEffort(chatModelProperties.reasoningEffort())
+                        .customParameters(chatModelProperties.customParameters())
+                        .build())
+                .returnThinking(chatModelProperties.returnThinking())
+                .timeout(chatModelProperties.timeout())
+                .logRequests(chatModelProperties.logRequests())
+                .logResponses(chatModelProperties.logResponses())
+                .customHeaders(chatModelProperties.customHeaders())
+                .customQueryParams(chatModelProperties.customQueryParams())
+                .build();
+    }
+
+    @Bean
     public CompiledGraph<?> compiledGraph(
             Path workspacePath,
             ToolEventBus toolEventBus,
-            MemorySaver memorySaver) throws GraphStateException {
-
-        // DashScope via OpenAI-compatible API
-        var streamingChatModel = OpenAiStreamingChatModel.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .modelName(modelName)
-                .build();
-
+            MemorySaver memorySaver,
+            StreamingChatModel streamingChatModel) throws GraphStateException {
         // Create tool instances
         var fetchUrlTool = new FetchUrlTool();
         var httpRequestTool = new HttpRequestTool();
@@ -124,10 +147,9 @@ public class AgentConfiguration {
 
         var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)
-                .recursionLimit(recursionLimit)
+                .recursionLimit(50)
                 .build();
 
-        log.info("LangGraph4J agent compiled with streaming model: {}, recursionLimit: {}", modelName, recursionLimit);
         return graph.compile(compileConfig);
     }
 }
