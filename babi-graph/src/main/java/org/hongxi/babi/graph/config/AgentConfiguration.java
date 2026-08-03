@@ -26,6 +26,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Spring configuration that assembles the LangGraph4J Agent infrastructure.
@@ -64,6 +68,15 @@ public class AgentConfiguration {
     @Bean
     public StreamingChatModel streamingChatModel(Properties properties) {
         ChatModelProperties chatModelProperties = properties.streamingChatModel();
+
+        // Merge enable_search into customParameters when DashScope native search is enabled
+        Map<String, Object> mergedCustomParams = chatModelProperties.customParameters();
+        if (Boolean.TRUE.equals(chatModelProperties.enableSearch())) {
+            mergedCustomParams = mergedCustomParams != null
+                    ? new HashMap<>(mergedCustomParams) : new HashMap<>();
+            mergedCustomParams.put("enable_search", true);
+        }
+
         return OpenAiStreamingChatModel.builder()
                 .baseUrl(chatModelProperties.baseUrl())
                 .apiKey(chatModelProperties.apiKey())
@@ -88,7 +101,7 @@ public class AgentConfiguration {
                 .serviceTier(chatModelProperties.serviceTier())
                 .defaultRequestParameters(OpenAiChatRequestParameters.builder()
                         .reasoningEffort(chatModelProperties.reasoningEffort())
-                        .customParameters(chatModelProperties.customParameters())
+                        .customParameters(mergedCustomParams)
                         .build())
                 .returnThinking(chatModelProperties.returnThinking())
                 .timeout(chatModelProperties.timeout())
@@ -104,21 +117,31 @@ public class AgentConfiguration {
             Path workspacePath,
             ToolEventBus toolEventBus,
             MemorySaver memorySaver,
-            StreamingChatModel streamingChatModel) throws GraphStateException {
+            StreamingChatModel streamingChatModel,
+            Properties properties) throws GraphStateException {
+        ChatModelProperties chatModelProperties = properties.streamingChatModel();
+
         // Create tool instances
-        var fetchUrlTool = new FetchUrlTool();
-        var httpRequestTool = new HttpRequestTool();
-        var gitHubApiTool = new GitHubApiTool();
-        var fileReadTool = new FileReadTool();
-        var fileEditTool = new FileEditTool();
-        var shellCommandTool = new ShellCommandTool(workspacePath.toString());
-        var codeSearchTool = new CodeSearchTool();
+        List<Object> tools = new LinkedList<>();
         var skillTool = new SkillTool(workspacePath);
-        var webSearchTool = new WebSearchTool();
+        tools.add(skillTool);
+        tools.add(new FetchUrlTool());
+        tools.add(new HttpRequestTool());
+        tools.add(new GitHubApiTool());
+        tools.add(new FileReadTool());
+        tools.add(new FileEditTool());
+        tools.add(new ShellCommandTool(workspacePath.toString()));
+        tools.add(new CodeSearchTool());
+        // When DashScope native search is enabled, skip the external WebSearchTool
+        if (!Boolean.TRUE.equals(chatModelProperties.enableSearch())) {
+            tools.add(new WebSearchTool());
+        }
 
         // Build system prompt
         String sysPrompt = CodingSystemPrompt.build(
-                workspacePath.toString(), skillTool.getSkills().values());
+                workspacePath.toString(),
+                skillTool.getSkills().values(),
+                Boolean.TRUE.equals(chatModelProperties.enableSearch()));
 
         // LangGraph4J does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.
@@ -129,17 +152,7 @@ public class AgentConfiguration {
         var graph = AgentExecutor.builder()
                 .chatModel(streamingChatModel)
                 .systemMessage(SystemMessage.from(sysPrompt))
-                .toolsFromObject(
-                        fetchUrlTool,
-                        httpRequestTool,
-                        webSearchTool,
-                        gitHubApiTool,
-                        fileReadTool,
-                        fileEditTool,
-                        shellCommandTool,
-                        codeSearchTool,
-                        skillTool
-                )
+                .toolsFromObject(tools.toArray())
                 .build();
 
         // Register tool-call notification hook on the "action" edge

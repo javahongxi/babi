@@ -39,6 +39,6 @@ record ChatModelProperties(
         Boolean logResponses,
         Map<String, String> customHeaders,
         Map<String, String> customQueryParams,
-        Map<String, Object> customParameters
-) {
-}
+        Map<String, Object> customParameters,
+        Boolean enableSearch
+) {}

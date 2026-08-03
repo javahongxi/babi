@@ -29,13 +29,24 @@ public final class CodingSystemPrompt {
      * @param skills    the collection of loaded skills (maybe empty)
      */
     public static String build(String workspace, Collection<Skill> skills) {
+        return build(workspace, skills, false);
+    }
+
+    /**
+     * Builds the system prompt with loaded skills, workspace info, and search awareness.
+     *
+     * @param workspace     the absolute path of the current workspace
+     * @param skills        the collection of loaded skills (maybe empty)
+     * @param enableSearch  whether the LLM's built-in search is enabled (no web_search tool needed)
+     */
+    public static String build(String workspace, Collection<Skill> skills, boolean enableSearch) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
                 workspaceSection(workspace),
-                coreRulesSection(),
+                coreRulesSection(enableSearch),
                 githubSection(),
                 skillsSection(skills),
-                guidelinesSection(),
+                guidelinesSection(enableSearch),
                 custom
         ).strip();
     }
@@ -75,7 +86,10 @@ public final class CodingSystemPrompt {
                 """.formatted(workspace);
     }
 
-    private static String coreRulesSection() {
+    private static String coreRulesSection(boolean enableSearch) {
+        String searchHint = enableSearch
+                ? "immediately use your built-in search capability or call fetch_url to find the answer"
+                : "immediately call web_search, fetch_url, or the appropriate tool to find the answer";
         return """
                 CRITICAL RULES (you MUST follow these):
 
@@ -101,11 +115,11 @@ public final class CodingSystemPrompt {
 
                 5. ACT FIRST, DON'T ASK: When the user asks a question that requires real-time
                    or external information (e.g., news, movies, weather, prices, events), you MUST
-                   immediately call web_search, fetch_url, or the appropriate tool to find the
-                   answer. NEVER present a menu of options like "I can do X, Y, or Z — which do
+                   %s.
+                   NEVER present a menu of options like "I can do X, Y, or Z — which do
                    you want?". Just DO it and report the results. Only ask for clarification when
                    the request is genuinely ambiguous.
-                """;
+                """.formatted(searchHint);
     }
 
     private static String githubSection() {
@@ -170,7 +184,10 @@ public final class CodingSystemPrompt {
         return sb.toString();
     }
 
-    private static String guidelinesSection() {
+    private static String guidelinesSection(boolean enableSearch) {
+        String searchGuideline = enableSearch
+                ? "- You have built-in search capability for finding information online — use it proactively"
+                : "- Use web_search for finding information online";
         return """
                 General guidelines:
                 - Always explain what you're doing before executing commands
@@ -178,7 +195,7 @@ public final class CodingSystemPrompt {
                 - When reading code, provide clear analysis and suggestions
                 - Use shell commands for tasks like compiling, running tests, checking git status
                 - Use fetch_url for reading web pages and documentation
-                - Use web_search for finding information online
+                %s
                 - Use http_request for API calls or as fallback when fetch_url fails
                 - Use github_api_request for ALL GitHub-related tasks.
                   This tool has automatic token injection (from GITHUB_TOKEN or GH_TOKEN env var).
@@ -189,7 +206,7 @@ public final class CodingSystemPrompt {
                   tool that returns image URLs), you MUST use Markdown image syntax
                   ![description](image_url) so the image is displayed directly in the chat.
                   Do NOT output bare URLs — always wrap them in Markdown image syntax.
-                """;
+                """.formatted(searchGuideline);
     }
 
     // -----------------------------------------------------------------

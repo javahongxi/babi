@@ -22,6 +22,10 @@ import org.springframework.core.env.Environment;
 @SpringBootApplication
 public class BabiGraphApplication {
     public static void main(String[] args) {
+        // Enable DashScope native search if Tavily API key is not set
+        if (System.getenv("TAVILY_API_KEY") == null) {
+            System.setProperty("babi.dashscope.chat.enable-search", "true");
+        }
         SpringApplication.run(BabiGraphApplication.class, args);
     }
 

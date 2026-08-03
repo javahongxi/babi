@@ -109,7 +109,10 @@ public class AgentConfiguration {
         }
 
         // Build system prompt with workspace info and skills
-        String sysPrompt = CodingSystemPrompt.build(workspacePath.toString(), skillTool.getSkills().values());
+        String sysPrompt = CodingSystemPrompt.build(
+                workspacePath.toString(),
+                skillTool.getSkills().values(),
+                properties.chat().enableSearch());
 
         return HarnessAgent.builder()
                 .name(AgentUtils.AGENT_NAME)

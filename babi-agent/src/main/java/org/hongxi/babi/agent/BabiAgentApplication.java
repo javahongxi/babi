@@ -30,6 +30,10 @@ public class BabiAgentApplication {
             System.err.println("Then set it with: export DASHSCOPE_API_KEY=your_api_key");
             System.exit(1);
         }
+        // Enable DashScope native search if Tavily API key is not set
+        if (System.getenv("TAVILY_API_KEY") == null) {
+            System.setProperty("babi.dashscope.chat.enable-search", "true");
+        }
         SpringApplication.run(BabiAgentApplication.class, args);
     }
 

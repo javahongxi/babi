@@ -123,7 +123,8 @@ public class AgentConfiguration {
 
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
-                skillTool.getSkills().values());
+                skillTool.getSkills().values(),
+                properties.chat().enableSearch());
 
         // Spring AI does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.
