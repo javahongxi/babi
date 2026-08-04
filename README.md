@@ -37,15 +37,17 @@
 
 各模块默认均使用 Qwen 系列模型：
 
-| 模块            | 模型         | SDK                                     | 环境变量            |
-|-----------------|--------------|-----------------------------------------|---------------------|
-| **babi-agent**  | qwen3.7-plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
-| **babi-graph**  | qwen3.8-max  | langchain4j-open-ai                     | `DASHSCOPE_API_KEY` |
-| **babi-spring** | qwen3.8-max  | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
+| 模块            | 模型        | SDK                                     | 环境变量            |
+|-----------------|-------------|-----------------------------------------|---------------------|
+| **babi-agent**  | qwen3.8-max | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
+| **babi-graph**  | qwen3.8-max | langchain4j-open-ai                     | `DASHSCOPE_API_KEY` |
+| **babi-spring** | qwen3.8-max | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
 
-> babi-graph 支持通过 spring profiles 切换 Qwen / DeepSeek，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
-> 
-> babi-spring 为了让 Spring AI 支持原生 dashscope-sdk-java，自定义了 DashScopeChatModel 实现 ChatModel 接口。
+> babi-agent 支持配置备用模型，当主模型不可用时，自动切换到备用模型，这是由框架支持的。
+>
+> babi-graph 支持通过 spring profiles 切换模型，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
+>
+> babi-spring 为了让 Spring AI 支持原生 dashscope-sdk-java，提供了 DashScopeChatModel 实现。
 
 ```bash
 # 阿里云百炼 API Key

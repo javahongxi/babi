@@ -4,6 +4,7 @@ import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
+import io.agentscope.extensions.model.dashscope.EndpointType;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.workspace.LocalFsMode;
@@ -122,6 +123,7 @@ public class AgentConfiguration {
                         .modelName(properties.chat().model())
                         .stream(true)
                         .enableSearch(properties.chat().enableSearch())
+                        .endpointType(EndpointType.MULTIMODAL)
                         .build())
                 .fallbackModel(properties.chat().fallbackModel())
                 .toolkit(toolkit)
