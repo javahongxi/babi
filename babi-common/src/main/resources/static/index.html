@@ -58,9 +58,11 @@
         #input-area .input-inner { max-width: 1100px; width: 100%; position: relative; display: flex; align-items: flex-end; }
         #input-area textarea { flex: 1; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 12px 80px 12px 14px; font-size: 16px; font-family: inherit; resize: none; outline: none; min-height: 48px; max-height: 120px; line-height: 1.5; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); }
         #input-area textarea:focus { border-color: #1a73e8; }
-        #input-area button { position: absolute; right: 6px; bottom: 6px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; white-space: nowrap; height: 36px; }
+        #input-area button { position: absolute; right: 6px; bottom: 6px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; white-space: nowrap; height: 36px; transition: background 0.2s; }
         #input-area button:hover { background: #1557b0; }
         #input-area button:disabled { background: #ccc; cursor: not-allowed; }
+        #input-area button.stop-btn { background: #ea4335; }
+        #input-area button.stop-btn:hover { background: #c5221f; }
         .session-bar { padding: 8px 24px; background: transparent; border-bottom: none; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; justify-content: center; }
         .session-bar .session-inner { max-width: 1100px; width: 100%; display: flex; align-items: center; gap: 8px; }
         .session-bar input { border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 13px; width: 160px; outline: none; }
@@ -91,6 +93,8 @@
         html[data-theme="dark"] #input-area textarea:focus { border-color: #58a6ff; }
         html[data-theme="dark"] #input-area button { background: #1f6feb; }
         html[data-theme="dark"] #input-area button:hover { background: #388bfd; }
+        html[data-theme="dark"] #input-area button.stop-btn { background: #f85149; }
+        html[data-theme="dark"] #input-area button.stop-btn:hover { background: #da3633; }
         html[data-theme="dark"] .session-bar { background: transparent; border-bottom: none; color: #aaa; }
         html[data-theme="dark"] .session-bar input { background: rgba(30,30,30,0.7); border-color: rgba(255,255,255,0.1); color: #e0e0e0; }
         html[data-theme="dark"] .session-bar input:focus { border-color: #58a6ff; }
@@ -212,6 +216,8 @@
         // All stream state is local to sendMessage() — no globals needed
         let isSending = false; // Guard against EventSource auto-reconnect duplicates
         let lastSessionId = sessionIdInput.value.trim() || 'default'; // Track session ID to detect changes
+        let currentEventSource = null; // Track current EventSource for interrupt
+        let currentSessionIdForInterrupt = null; // Track session ID for interrupt
 
         // Load UI config from server
         fetch('/api/ui/config')
@@ -504,7 +510,10 @@
             agentMsg.appendChild(indicator);
             scrollToBottom();
 
-            sendBtn.disabled = true;
+            sendBtn.disabled = false;
+            sendBtn.textContent = '停止';
+            sendBtn.classList.add('stop-btn');
+            sendBtn.onclick = interruptStream;
 
             let tokenEl = null;
             let rawText = '';
@@ -516,6 +525,8 @@
 
             const url = '/api/chat/stream?message=' + encodeURIComponent(message) + '&sessionId=' + encodeURIComponent(sessionId);
             const eventSource = new EventSource(url);
+            currentEventSource = eventSource;
+            currentSessionIdForInterrupt = sessionId;
 
             eventSource.addEventListener('token', function(e) {
                 if (indicator.parentNode) indicator.remove();
@@ -553,8 +564,7 @@
                 }
                 scrollToBottom();
                 eventSource.close();
-                isSending = false;
-                sendBtn.disabled = false;
+                resetSendButton();
                 userInput.focus();
             });
 
@@ -563,15 +573,52 @@
                 eventSource.close();
                 if (indicator.parentNode) indicator.remove();
                 if (!rawText.trim()) {
-                    agentMsg.textContent = '⚠️ 连接中断，请重试';
+                    // Check if this was an interrupt (user clicked stop)
+                    if (currentEventSource === null) {
+                        // Interrupted by user, show partial content or nothing
+                        if (tokenEl && rawText) {
+                            renderMarkdown(tokenEl, rawText);
+                        }
+                    } else {
+                        agentMsg.textContent = '⚠️ 连接中断，请重试';
+                    }
                 } else if (tokenEl && rawText) {
                     renderMarkdown(tokenEl, rawText);
                 }
                 scrollToBottom();
-                isSending = false;
-                sendBtn.disabled = false;
+                resetSendButton();
                 userInput.focus();
             };
+        }
+
+        // Interrupt the current stream and stop LLM generation
+        function interruptStream() {
+            if (!isSending) return;
+            const sessionId = currentSessionIdForInterrupt || sessionIdInput.value.trim() || 'default';
+            // Close EventSource first to stop receiving events
+            if (currentEventSource) {
+                currentEventSource.close();
+                currentEventSource = null;
+            }
+            // Call interrupt API to stop LLM token generation
+            fetch('/api/chat/interrupt?sessionId=' + encodeURIComponent(sessionId), { method: 'POST' })
+                .then(r => r.json())
+                .then(data => console.log('Interrupted:', data.message))
+                .catch(err => console.warn('Interrupt failed:', err));
+            // Reset UI
+            resetSendButton();
+            userInput.focus();
+        }
+
+        // Reset send button to normal state
+        function resetSendButton() {
+            isSending = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = '发送';
+            sendBtn.classList.remove('stop-btn');
+            sendBtn.onclick = sendMessage;
+            currentEventSource = null;
+            currentSessionIdForInterrupt = null;
         }
 
         // Theme management

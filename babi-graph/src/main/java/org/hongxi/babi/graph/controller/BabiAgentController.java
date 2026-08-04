@@ -100,6 +100,18 @@ public class BabiAgentController {
     }
 
     /**
+     * Interrupt an in-flight request for a specific session.
+     * This cancels the AsyncGenerator to stop LLM token generation.
+     */
+    @PostMapping("/interrupt")
+    public Mono<Map<String, String>> interrupt(
+            @RequestParam(defaultValue = "default") String sessionId) {
+        log.info("Interrupting session: {}", sessionId);
+        babiService.interrupt(sessionId);
+        return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' interrupted"));
+    }
+
+    /**
      * Synchronous chat endpoint.
      */
     @GetMapping("/send")

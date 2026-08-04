@@ -1,6 +1,7 @@
 package org.hongxi.babi.graph.service;
 
 import dev.langchain4j.data.message.UserMessage;
+import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
@@ -30,6 +31,8 @@ public class BabiService {
     private final CompiledGraph<?> graph;
     private final MemorySaver memorySaver;
     private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
+    /** Tracks active generators per session for interrupt support */
+    private final Map<String, AsyncGenerator.Cancellable<?>> activeGenerators = new ConcurrentHashMap<>();
 
     public BabiService(CompiledGraph<?> graph, MemorySaver memorySaver) {
         this.graph = graph;
@@ -67,6 +70,8 @@ public class BabiService {
                         .build();
 
                 var result = graph.stream(input, config);
+                // Save generator reference for interrupt support
+                activeGenerators.put(sessionId, result);
 
                 // Consume the AsyncGenerator via .stream() -> Java Stream
                 result.stream()
@@ -90,11 +95,28 @@ public class BabiService {
                 sink.tryEmitComplete();
             } finally {
                 activeSessions.remove(sessionId);
+                activeGenerators.remove(sessionId);
                 SessionContextHolder.clear();
             }
         }, "babi-agent-" + sessionId).start();
 
         return sink.asFlux();
+    }
+
+    /**
+     * Interrupt an in-flight request for a specific session.
+     * This cancels the AsyncGenerator to stop LLM token generation.
+     *
+     * @param sessionId session identifier to interrupt
+     */
+    public void interrupt(String sessionId) {
+        AsyncGenerator.Cancellable<?> generator = activeGenerators.remove(sessionId);
+        if (generator != null) {
+            log.info("Interrupting session: {}", sessionId);
+            generator.cancel(true);
+        } else {
+            log.debug("No active generator found for session: {}", sessionId);
+        }
     }
 
     /**

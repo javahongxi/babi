@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -215,6 +216,27 @@ public class BabiAgentController {
         activeSessions.remove(sessionId);
         log.info("Session deleted: {}", sessionId);
         return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' deleted"));
+    }
+
+    /**
+     * Interrupt an in-flight request for a specific session.
+     * This triggers the framework's native interrupt mechanism to stop LLM token generation.
+     *
+     * @param sessionId session identifier to interrupt
+     * @return result message
+     */
+    @PostMapping("/interrupt")
+    public Mono<Map<String, String>> interrupt(
+            @RequestParam(defaultValue = "default") String sessionId) {
+        log.info("Interrupting session: {}", sessionId);
+        try {
+            // Use framework's native interrupt to stop LLM token generation
+            agent.getDelegate().interrupt(null, sessionId);
+            return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' interrupted"));
+        } catch (Exception e) {
+            log.warn("Failed to interrupt session {}: {}", sessionId, e.getMessage());
+            return Mono.just(Map.of("status", "error", "message", e.getMessage() != null ? e.getMessage() : "Interrupt failed"));
+        }
     }
 
     /**

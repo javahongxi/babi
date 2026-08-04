@@ -9,9 +9,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -102,7 +104,7 @@ public class BabiAgentController {
         // 2. Agent text delta stream (Spring AI 2.0 handles ReAct loop internally)
         Flux<ServerSentEvent<String>> agentEvents = Flux.<ServerSentEvent<String>>create(sink -> {
             try {
-                babiService.streamChat(message, sessionId)
+                Disposable disposable = babiService.streamChat(message, sessionId)
                         .doOnNext(token -> {
                             if (!sink.isCancelled()) {
                                 sink.next(sse("token", Map.of("type", "token", "data", token)));
@@ -121,6 +123,14 @@ public class BabiAgentController {
                             }
                         })
                         .subscribe();
+                // Register subscription for interrupt support
+                babiService.registerSubscription(sessionId, disposable);
+                // Clean up subscription when sink is cancelled
+                sink.onDispose(() -> {
+                    if (!disposable.isDisposed()) {
+                        disposable.dispose();
+                    }
+                });
             } catch (Exception e) {
                 log.error("Failed to start streaming: {}", e.getMessage(), e);
                 sink.error(e);
@@ -133,6 +143,18 @@ public class BabiAgentController {
                 toolEvents.takeUntilOther(sharedAgentEvents.then()),
                 sharedAgentEvents
         ).doFinally(sig -> activeSessions.remove(sessionId));
+    }
+
+    /**
+     * Interrupt an in-flight request for a specific session.
+     * This disposes the subscription and interrupts the thread to stop LLM token generation.
+     */
+    @PostMapping("/interrupt")
+    public Mono<Map<String, String>> interrupt(
+            @RequestParam(defaultValue = "default") String sessionId) {
+        log.info("Interrupting session: {}", sessionId);
+        babiService.interrupt(sessionId);
+        return Mono.just(Map.of("status", "ok", "message", "Session '" + sessionId + "' interrupted"));
     }
 
     /**
