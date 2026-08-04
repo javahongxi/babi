@@ -37,11 +37,11 @@
 
 各模块默认均使用 Qwen 系列模型：
 
-| 模块            | 模型      | SDK                                     | 环境变量            |
-|-----------------|-----------|-----------------------------------------|---------------------|
-| **babi-agent**  | Qwen-Plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
-| **babi-graph**  | Qwen-Plus | langchain4j-open-ai                     | `DASHSCOPE_API_KEY` |
-| **babi-spring** | Qwen-Plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
+| 模块            | 模型         | SDK                                     | 环境变量            |
+|-----------------|--------------|-----------------------------------------|---------------------|
+| **babi-agent**  | qwen3.7-plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
+| **babi-graph**  | qwen3.8-max  | langchain4j-open-ai                     | `DASHSCOPE_API_KEY` |
+| **babi-spring** | qwen3.8-max  | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
 
 > babi-graph 支持通过 spring profiles 切换 Qwen / DeepSeek，切换至 DeepSeek 时使用 `DEEPSEEK_API_KEY`。
 > 

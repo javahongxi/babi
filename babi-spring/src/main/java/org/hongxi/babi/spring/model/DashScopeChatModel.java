@@ -1,10 +1,10 @@
 package org.hongxi.babi.spring.model;
 
-import com.alibaba.dashscope.aigc.generation.Generation;
-import com.alibaba.dashscope.aigc.generation.GenerationOutput;
-import com.alibaba.dashscope.aigc.generation.GenerationParam;
-import com.alibaba.dashscope.aigc.generation.GenerationResult;
-import com.alibaba.dashscope.common.Message;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
+import com.alibaba.dashscope.common.MultiModalMessage;
 import com.alibaba.dashscope.common.Role;
 import com.alibaba.dashscope.tools.FunctionDefinition;
 import com.alibaba.dashscope.tools.ToolCallBase;
@@ -27,6 +27,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +36,12 @@ import java.util.Map;
  * DashScope Chat Model implementation that adapts the DashScope Java SDK
  * to Spring AI's {@link ChatModel} interface.
  *
- * <p>This implementation uses the DashScope SDK's native API directly,
- * bypassing the OpenAI-compatible endpoint which has bugs in streaming mode
- * with tool calls (function field is null in chunks causing NoSuchElementException).
+ * <p>This implementation uses the DashScope SDK's {@link MultiModalConversation}
+ * API (multimodal-generation endpoint) instead of the {@code Generation} API
+ * (text-generation endpoint), because newer models like qwen3.7-plus are
+ * multimodal models that require the multimodal-generation endpoint.
+ * Using the text-generation endpoint with such models results in
+ * {@code 400 url error, please check url}.
  *
  * <p>Supports both synchronous and streaming modes with proper tool call handling.
  * For streaming, tool call chunks are accumulated and merged before emitting,
@@ -50,7 +54,7 @@ public class DashScopeChatModel implements ChatModel {
     private final Double temperature;
     private final Double topP;
     private final boolean enableSearch;
-    private final Generation generation;
+    private final MultiModalConversation conversation;
 
     public DashScopeChatModel(
             String apiKey,
@@ -63,23 +67,22 @@ public class DashScopeChatModel implements ChatModel {
         this.temperature = temperature;
         this.topP = topP;
         this.enableSearch = enableSearch;
-        this.generation = new Generation();
+        this.conversation = new MultiModalConversation();
     }
 
     @Override
     public ChatResponse call(Prompt prompt) {
-        List<Message> dashScopeMessages = convertMessages(prompt.getInstructions());
-        GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
+        List<MultiModalMessage> dashScopeMessages = convertMessages(prompt.getInstructions());
+        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder = MultiModalConversationParam.builder()
                 .apiKey(apiKey)
                 .model(model)
                 .messages(dashScopeMessages)
-                .enableSearch(enableSearch)
-                .resultFormat(GenerationParam.ResultFormat.MESSAGE);
+                .enableSearch(enableSearch);
 
         applyOptions(builder, prompt.getOptions());
 
         try {
-            GenerationResult result = generation.call(builder.build());
+            MultiModalConversationResult result = conversation.call(builder.build());
             return convertToChatResponse(result);
         } catch (Exception e) {
             throw new RuntimeException("DashScope API call failed", e);
@@ -88,19 +91,18 @@ public class DashScopeChatModel implements ChatModel {
 
     @Override
     public Flux<ChatResponse> stream(Prompt prompt) {
-        List<Message> dashScopeMessages = convertMessages(prompt.getInstructions());
-        GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
+        List<MultiModalMessage> dashScopeMessages = convertMessages(prompt.getInstructions());
+        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder = MultiModalConversationParam.builder()
                 .apiKey(apiKey)
                 .model(model)
                 .messages(dashScopeMessages)
                 .incrementalOutput(true)
-                .enableSearch(enableSearch)
-                .resultFormat(GenerationParam.ResultFormat.MESSAGE);
+                .enableSearch(enableSearch);
 
         applyOptions(builder, prompt.getOptions());
 
         try {
-            Flowable<GenerationResult> flowable = generation.streamCall(builder.build());
+            Flowable<MultiModalConversationResult> flowable = conversation.streamCall(builder.build());
             return convertToFlux(flowable);
         } catch (Exception e) {
             return Flux.error(new RuntimeException("DashScope API stream call failed", e));
@@ -121,25 +123,28 @@ public class DashScopeChatModel implements ChatModel {
     // -------------------------------------------------------------------------
 
     /**
-     * Convert Spring AI messages to DashScope messages.
+     * Convert Spring AI messages to DashScope MultiModalMessages.
+     *
+     * <p>For MultiModalMessage, text content is represented as a list of maps:
+     * {@code [{"text": "actual content"}]}.
      */
-    private List<Message> convertMessages(List<org.springframework.ai.chat.messages.Message> springMessages) {
-        List<Message> result = new ArrayList<>();
+    private List<MultiModalMessage> convertMessages(List<org.springframework.ai.chat.messages.Message> springMessages) {
+        List<MultiModalMessage> result = new ArrayList<>();
         for (org.springframework.ai.chat.messages.Message springMsg : springMessages) {
             if (springMsg instanceof SystemMessage sysMsg) {
-                result.add(Message.builder()
+                result.add(MultiModalMessage.builder()
                         .role(Role.SYSTEM.getValue())
-                        .content(sysMsg.getText())
+                        .content(textContent(sysMsg.getText()))
                         .build());
             } else if (springMsg instanceof UserMessage userMsg) {
-                result.add(Message.builder()
+                result.add(MultiModalMessage.builder()
                         .role(Role.USER.getValue())
-                        .content(userMsg.getText())
+                        .content(textContent(userMsg.getText()))
                         .build());
             } else if (springMsg instanceof AssistantMessage assistantMsg) {
-                Message.MessageBuilder msgBuilder = Message.builder()
+                MultiModalMessage.MultiModalMessageBuilder<?, ?> msgBuilder = MultiModalMessage.builder()
                         .role(Role.ASSISTANT.getValue())
-                        .content(assistantMsg.getText());
+                        .content(textContent(assistantMsg.getText()));
                 if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
                     List<ToolCallBase> toolCalls = new ArrayList<>();
                     for (AssistantMessage.ToolCall tc : assistantMsg.getToolCalls()) {
@@ -157,9 +162,9 @@ public class DashScopeChatModel implements ChatModel {
                 result.add(msgBuilder.build());
             } else if (springMsg instanceof ToolResponseMessage toolResponseMsg) {
                 for (ToolResponseMessage.ToolResponse tr : toolResponseMsg.getResponses()) {
-                    result.add(Message.builder()
+                    result.add(MultiModalMessage.builder()
                             .role(Role.TOOL.getValue())
-                            .content(tr.responseData())
+                            .content(textContent(tr.responseData()))
                             .toolCallId(tr.id())
                             .name(tr.name())
                             .build());
@@ -170,9 +175,35 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     /**
+     * Wrap a text string into the MultiModalMessage content format:
+     * {@code [{"text": text}]}.
+     */
+    private static List<Map<String, Object>> textContent(String text) {
+        return Collections.singletonList(Collections.singletonMap("text", text != null ? text : ""));
+    }
+
+    /**
+     * Extract plain text from a MultiModalMessage content list.
+     * The content is a list of maps like {@code [{"text": "actual content"}]}.
+     */
+    private static String extractText(List<Map<String, Object>> content) {
+        if (content == null || content.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Map<String, Object> item : content) {
+            Object text = item.get("text");
+            if (text != null) {
+                sb.append(text);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * Apply Spring AI chat options (tools, temperature, etc.) to the DashScope param builder.
      */
-    private void applyOptions(GenerationParam.GenerationParamBuilder<?, ?> builder, ChatOptions options) {
+    private void applyOptions(MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder, ChatOptions options) {
         if (options instanceof ToolCallingChatOptions toolOptions && toolOptions.getToolCallbacks() != null
                 && !toolOptions.getToolCallbacks().isEmpty()) {
             List<com.alibaba.dashscope.tools.ToolBase> tools = new ArrayList<>();
@@ -203,21 +234,21 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     /**
-     * Convert a DashScope GenerationResult to a Spring AI ChatResponse.
+     * Convert a DashScope MultiModalConversationResult to a Spring AI ChatResponse.
      */
-    private ChatResponse convertToChatResponse(GenerationResult result) {
+    private ChatResponse convertToChatResponse(MultiModalConversationResult result) {
         if (result.getOutput() == null || result.getOutput().getChoices() == null
                 || result.getOutput().getChoices().isEmpty()) {
             return new ChatResponse(List.of());
         }
 
-        GenerationOutput.Choice choice = result.getOutput().getChoices().get(0);
-        Message message = choice.getMessage();
+        MultiModalConversationOutput.Choice choice = result.getOutput().getChoices().get(0);
+        MultiModalMessage message = choice.getMessage();
 
         List<AssistantMessage.ToolCall> toolCalls = extractToolCalls(message);
 
         AssistantMessage assistantMessage = AssistantMessage.builder()
-                .content(message.getContent() != null ? message.getContent() : "")
+                .content(extractText(message.getContent()))
                 .toolCalls(toolCalls)
                 .build();
 
@@ -243,23 +274,23 @@ public class DashScopeChatModel implements ChatModel {
      * the final aggregated response (with tool calls) is emitted, so that Spring
      * AI's MessageAggregator can properly detect and execute tool calls.
      */
-    private Flux<ChatResponse> convertToFlux(Flowable<GenerationResult> flowable) {
+    private Flux<ChatResponse> convertToFlux(Flowable<MultiModalConversationResult> flowable) {
         return Flux.<ChatResponse>create(sink -> {
             // Accumulator for tool call chunks across the stream
             Map<Integer, AccumulatedToolCall> toolCallAccumulator = new HashMap<>();
             boolean hasToolCalls = false;
-            GenerationResult lastResult = null;
+            MultiModalConversationResult lastResult = null;
             String lastFinishReason = null;
 
             try {
-                for (GenerationResult result : flowable.blockingIterable()) {
+                for (MultiModalConversationResult result : flowable.blockingIterable()) {
                     if (result.getOutput() == null || result.getOutput().getChoices() == null
                             || result.getOutput().getChoices().isEmpty()) {
                         continue;
                     }
 
-                    GenerationOutput.Choice choice = result.getOutput().getChoices().get(0);
-                    Message msg = choice.getMessage();
+                    MultiModalConversationOutput.Choice choice = result.getOutput().getChoices().get(0);
+                    MultiModalMessage msg = choice.getMessage();
                     lastResult = result;
 
                     // Track finish reason (may be null, empty, or meaningful like "stop"/"tool_calls")
@@ -288,7 +319,7 @@ public class DashScopeChatModel implements ChatModel {
                     }
 
                     // Text-only stream: emit each delta immediately for true streaming
-                    String content = (msg.getContent() != null) ? msg.getContent() : "";
+                    String content = extractText(msg.getContent());
                     if (!content.isEmpty()) {
                         AssistantMessage assistantMessage = AssistantMessage.builder()
                                 .content(content)
@@ -347,9 +378,9 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     /**
-     * Extract tool calls from a DashScope message.
+     * Extract tool calls from a DashScope MultiModalMessage.
      */
-    private List<AssistantMessage.ToolCall> extractToolCalls(Message message) {
+    private List<AssistantMessage.ToolCall> extractToolCalls(MultiModalMessage message) {
         if (message.getToolCalls() == null || message.getToolCalls().isEmpty()) {
             return List.of();
         }
@@ -383,9 +414,9 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     /**
-     * Build ChatResponseMetadata from a DashScope GenerationResult.
+     * Build ChatResponseMetadata from a DashScope MultiModalConversationResult.
      */
-    private ChatResponseMetadata buildResponseMetadata(GenerationResult result) {
+    private ChatResponseMetadata buildResponseMetadata(MultiModalConversationResult result) {
         ChatResponseMetadata.Builder builder = ChatResponseMetadata.builder()
                 .id(result.getRequestId() != null ? result.getRequestId() : "");
         if (result.getUsage() != null) {

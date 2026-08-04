@@ -22,7 +22,7 @@ babi:
     streaming-chat-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${DASHSCOPE_API_KEY}
-      model-name: qwen-plus
+      model-name: qwen3.8-max
       log-requests: false
       log-responses: false
       temperature: 0.7
