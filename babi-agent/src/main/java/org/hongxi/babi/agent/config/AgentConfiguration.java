@@ -102,6 +102,7 @@ public class AgentConfiguration {
         toolkit.registerTool(new FetchUrlTool());
         toolkit.registerTool(new HttpRequestTool());
         toolkit.registerTool(new GitHubApiTool());
+        toolkit.registerTool(new GlobTool());
         SkillTool skillTool = new SkillTool(workspacePath);
         toolkit.registerTool(skillTool);
         // When DashScope native search is enabled, skip the external WebSearchTool

@@ -11,6 +11,7 @@ import org.hongxi.babi.spring.tool.FetchUrlTool;
 import org.hongxi.babi.spring.tool.FileEditTool;
 import org.hongxi.babi.spring.tool.FileReadTool;
 import org.hongxi.babi.spring.tool.GitHubApiTool;
+import org.hongxi.babi.spring.tool.GlobTool;
 import org.hongxi.babi.spring.tool.HttpRequestTool;
 import org.hongxi.babi.spring.tool.ShellCommandTool;
 import org.hongxi.babi.spring.tool.SkillTool;
@@ -140,6 +141,7 @@ public class AgentConfiguration {
         tools.add(new FileEditTool());
         tools.add(new ShellCommandTool(workspacePath.toString()));
         tools.add(new CodeSearchTool());
+        tools.add(new GlobTool());
         // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());
