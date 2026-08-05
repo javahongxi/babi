@@ -13,6 +13,7 @@ import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.graph.hook.ToolNotificationEdgeHook;
+import org.hongxi.babi.graph.model.ThinkingCaptureChatModel;
 import org.hongxi.babi.graph.tool.*;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
@@ -160,9 +161,13 @@ public class AgentConfiguration {
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         sysPrompt += "\n\nCurrent date and time: " + now;
 
+        // Wrap model with ThinkingCaptureChatModel to intercept onPartialThinking callbacks
+        // (LangGraph4J's StreamingChatGenerator discards thinking content by default)
+        var thinkingAwareModel = new ThinkingCaptureChatModel(streamingChatModel);
+
         // Build the agent graph
         var graph = AgentExecutor.builder()
-                .chatModel(streamingChatModel)
+                .chatModel(thinkingAwareModel)
                 .systemMessage(SystemMessage.from(sysPrompt))
                 .toolsFromObject(tools.toArray())
                 .build();

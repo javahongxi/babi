@@ -7,6 +7,7 @@ import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
 import org.hongxi.babi.common.util.SessionContextHolder;
+import org.hongxi.babi.graph.model.ThinkingCaptureChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,14 @@ public class BabiService {
 
         Sinks.Many<Map<String, Object>> sink = Sinks.many().unicast().onBackpressureBuffer();
 
+        // Create a thinking sink for capturing LLM reasoning content
+        Sinks.Many<String> thinkingSink = Sinks.many().unicast().onBackpressureBuffer();
+        ThinkingCaptureChatModel.registerSink(sessionId, thinkingSink);
+
+        // Thinking stream: map thinking text to "reasoning" events
+        Flux<Map<String, Object>> thinkingEvents = thinkingSink.asFlux()
+                .map(text -> Map.<String, Object>of("type", "reasoning", "data", text));
+
         new Thread(() -> {
             try {
                 // Set ThreadLocal for tool event emission
@@ -96,11 +105,14 @@ public class BabiService {
             } finally {
                 activeSessions.remove(sessionId);
                 activeGenerators.remove(sessionId);
+                ThinkingCaptureChatModel.unregisterSink(sessionId);
+                thinkingSink.tryEmitComplete();
                 SessionContextHolder.clear();
             }
         }, "babi-agent-" + sessionId).start();
 
-        return sink.asFlux();
+        // Merge token stream and thinking stream
+        return Flux.merge(sink.asFlux(), thinkingEvents);
     }
 
     /**

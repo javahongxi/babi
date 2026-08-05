@@ -28,6 +28,7 @@ babi:
       temperature: 0.7
       top-p: 0.9
       enable-search: false
+      return-thinking: true
     image:
       api-key: ${DASHSCOPE_API_KEY}
       model: qwen-image-3.0-pro

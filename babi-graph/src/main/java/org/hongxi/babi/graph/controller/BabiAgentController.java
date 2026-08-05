@@ -100,6 +100,7 @@ public class BabiAgentController {
                     String type = (String) data.getOrDefault("type", "token");
                     return switch (type) {
                         case "token" -> sse("token", Map.of("type", "token", "data", data.getOrDefault("data", "")));
+                        case "reasoning" -> sse("reasoning", Map.of("type", "reasoning", "data", data.getOrDefault("data", "")));
                         case "error" -> sse("error", Map.of("type", "error", "data", data.getOrDefault("data", "")));
                         default -> sse("done", Map.of("type", "done"));
                     };
