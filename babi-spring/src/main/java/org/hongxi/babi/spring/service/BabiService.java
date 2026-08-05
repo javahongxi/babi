@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -45,20 +46,14 @@ public class BabiService {
     /**
      * Stream a chat response with automatic tool-calling ReAct loop.
      *
-     * <p>Spring AI 2.0's ToolCallingAdvisor handles the full ReAct cycle:
-     * <ol>
-     *   <li>Send prompt to model (streaming)</li>
-     *   <li>Aggregate stream to detect tool calls</li>
-     *   <li>Execute tools if detected</li>
-     *   <li>Recursively call model with tool results</li>
-     *   <li>Filter intermediate tool-call responses, only emit final text tokens</li>
-     * </ol>
+     * <p>Returns full {@link ChatResponse} objects so that the caller can
+     * extract both text content and reasoning/thinking metadata.
      *
      * @param userMessage the user's input message
      * @param sessionId   session identifier for conversation isolation
-     * @return Flux of text token strings
+     * @return Flux of ChatResponse objects
      */
-    public Flux<String> streamChat(String userMessage, String sessionId) {
+    public Flux<ChatResponse> streamChat(String userMessage, String sessionId) {
         log.debug("streamChat: message='{}', sessionId='{}'", userMessage, sessionId);
         SessionContextHolder.setSessionId(sessionId);
         // Track current thread for interrupt support
@@ -67,7 +62,7 @@ public class BabiService {
                 .user(userMessage)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
                 .stream()
-                .content()
+                .chatResponse()
                 .contextWrite(ctx -> ctx.put(SESSION_ID_CTX_KEY, sessionId))
                 .doFinally(sig -> {
                     SessionContextHolder.clear();

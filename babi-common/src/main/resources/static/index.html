@@ -54,6 +54,14 @@
         .msg .tool-event.success { border-left-color: #34a853; }
         .msg .tool-event.error { border-left-color: #ea4335; }
         .msg .token-text { color: #333; }
+        /* Reasoning / thinking display */
+        .reasoning-block { margin: 8px 0; border-left: 3px solid #a78bfa; background: rgba(167,139,250,0.08); border-radius: 0 6px 6px 0; overflow: hidden; }
+        .reasoning-header { display: flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; color: #7c3aed; user-select: none; font-weight: 500; }
+        .reasoning-header:hover { background: rgba(167,139,250,0.12); }
+        .reasoning-header .arrow { transition: transform 0.2s; font-size: 10px; }
+        .reasoning-header .arrow.collapsed { transform: rotate(-90deg); }
+        .reasoning-content { padding: 4px 12px 10px; font-size: 13px; line-height: 1.6; color: #6b7280; font-style: italic; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .reasoning-content.collapsed { display: none; }
         #input-area { padding: 16px 24px; background: transparent; border-top: none; display: flex; gap: 12px; align-items: flex-end; justify-content: center; }
         #input-area .input-inner { max-width: 1100px; width: 100%; position: relative; display: flex; align-items: flex-end; }
         #input-area textarea { flex: 1; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 12px 80px 12px 14px; font-size: 16px; font-family: inherit; resize: none; outline: none; min-height: 48px; max-height: 120px; line-height: 1.5; background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); }
@@ -88,6 +96,10 @@
         html[data-theme="dark"] .msg .tool-event.success { border-left-color: #3fb950; }
         html[data-theme="dark"] .msg .tool-event.error { border-left-color: #f85149; }
         html[data-theme="dark"] .msg .token-text { color: #e0e0e0; }
+        html[data-theme="dark"] .reasoning-block { border-left-color: #7c3aed; background: rgba(124,58,237,0.1); }
+        html[data-theme="dark"] .reasoning-header { color: #a78bfa; }
+        html[data-theme="dark"] .reasoning-header:hover { background: rgba(124,58,237,0.15); }
+        html[data-theme="dark"] .reasoning-content { color: #9ca3af; }
         html[data-theme="dark"] #input-area { background: transparent; border-top: none; }
         html[data-theme="dark"] #input-area textarea { background: rgba(30,30,30,0.7); border-color: rgba(255,255,255,0.1); color: #e0e0e0; }
         html[data-theme="dark"] #input-area textarea:focus { border-color: #58a6ff; }
@@ -486,6 +498,44 @@
             scrollToBottom();
         }
 
+        // Reasoning / thinking block helpers
+        function createReasoningBlock(parentEl) {
+            const block = document.createElement('div');
+            block.className = 'reasoning-block';
+            const header = document.createElement('div');
+            header.className = 'reasoning-header';
+            header.innerHTML = '<span class="arrow">▼</span><span>💭 思考过程</span>';
+            const content = document.createElement('div');
+            content.className = 'reasoning-content';
+            block.appendChild(header);
+            block.appendChild(content);
+            // Insert before any token-text element (reasoning comes first)
+            const tokenText = parentEl.querySelector('.token-text');
+            if (tokenText) {
+                parentEl.insertBefore(block, tokenText);
+            } else {
+                parentEl.appendChild(block);
+            }
+            // Toggle on click
+            header.addEventListener('click', function() {
+                content.classList.toggle('collapsed');
+                header.querySelector('.arrow').classList.toggle('collapsed');
+            });
+            return block;
+        }
+
+        function updateReasoningContent(blockEl, text) {
+            const contentEl = blockEl.querySelector('.reasoning-content');
+            if (contentEl) contentEl.textContent = text;
+        }
+
+        function collapseReasoning(blockEl) {
+            const contentEl = blockEl.querySelector('.reasoning-content');
+            const arrowEl = blockEl.querySelector('.arrow');
+            if (contentEl) contentEl.classList.add('collapsed');
+            if (arrowEl) arrowEl.classList.add('collapsed');
+        }
+
         function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
@@ -515,10 +565,17 @@
 
             let tokenEl = null;
             let rawText = '';
+            let reasoningEl = null;
+            let rawReasoning = '';
             const tokenElRef = { el: null };
             const textRef = { text: '' };
+            const reasoningRef = { el: null, text: '' };
             const countRef = { n: 0, summaryEl: null };
             const scheduleRender = makeScheduleRender(tokenElRef, textRef);
+            const scheduleReasoningRender = makeScheduleRender(
+                { get el() { return reasoningRef.el; }, set el(v) { reasoningRef.el = v; } },
+                { get text() { return reasoningRef.text; }, set text(v) { reasoningRef.text = v; } }
+            );
 
             currentSessionIdForInterrupt = sessionId;
             const abortController = new AbortController();
@@ -584,6 +641,16 @@
                             tokenElRef.el = tokenEl;
                         }
                         scheduleRender();
+                    } else if (event === 'reasoning') {
+                        const parsed = JSON.parse(data);
+                        rawReasoning += parsed.data;
+                        reasoningRef.text = rawReasoning;
+                        if (!reasoningEl) {
+                            reasoningEl = createReasoningBlock(agentMsg);
+                            reasoningRef.el = reasoningEl;
+                        }
+                        updateReasoningContent(reasoningEl, rawReasoning);
+                        scrollToBottom();
                     } else if (event === 'tool_call') {
                         const parsed = JSON.parse(data);
                         addToolEvent(agentMsg, parsed.tool || 'unknown', 'tool_call', null, countRef);
@@ -600,6 +667,11 @@
                 function finishStream() {
                     if (indicator.parentNode) indicator.remove();
                     if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
+                    // Finalize reasoning block (collapse by default after completion)
+                    if (reasoningEl && rawReasoning) {
+                        updateReasoningContent(reasoningEl, rawReasoning);
+                        collapseReasoning(reasoningEl);
+                    }
                     scrollToBottom();
                 }
 
@@ -608,10 +680,12 @@
                 if (err.name === 'AbortError') {
                     // User interrupted — show partial content
                     if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
+                    if (reasoningEl && rawReasoning) collapseReasoning(reasoningEl);
                 } else {
                     console.error('Stream error:', err);
                     if (!rawText.trim()) agentMsg.textContent = '⚠️ 连接中断，请重试';
                     else if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
+                    if (reasoningEl && rawReasoning) collapseReasoning(reasoningEl);
                 }
                 scrollToBottom();
                 resetSendButton();

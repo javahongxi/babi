@@ -5,6 +5,9 @@ import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.spring.service.BabiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -117,13 +120,28 @@ public class BabiAgentController {
                         })
         );
 
-        // 2. Agent text delta stream (Spring AI 2.0 handles ReAct loop internally)
+        // 2. Agent response stream (Spring AI 2.0 handles ReAct loop internally)
+        //    Extract text tokens and reasoning/thinking content from ChatResponse
         Flux<ServerSentEvent<String>> agentEvents = Flux.<ServerSentEvent<String>>create(sink -> {
             try {
                 Disposable disposable = babiService.streamChat(message, sessionId)
-                        .doOnNext(token -> {
-                            if (!sink.isCancelled()) {
-                                sink.next(sse("token", Map.of("type", "token", "data", token)));
+                        .doOnNext(chatResponse -> {
+                            if (sink.isCancelled()) return;
+                            if (chatResponse == null || chatResponse.getResults() == null) return;
+                            for (Generation gen : chatResponse.getResults()) {
+                                AssistantMessage am = gen.getOutput();
+                                if (am == null) continue;
+                                // Extract reasoning content from metadata
+                                Object reasoning = am.getMetadata() != null
+                                        ? am.getMetadata().get("reasoningContent") : null;
+                                if (reasoning instanceof String r && !r.isEmpty()) {
+                                    sink.next(sse("reasoning", Map.of("type", "reasoning", "data", r)));
+                                }
+                                // Extract text content
+                                String text = am.getText();
+                                if (text != null && !text.isEmpty()) {
+                                    sink.next(sse("token", Map.of("type", "token", "data", text)));
+                                }
                             }
                         })
                         .doOnComplete(() -> {

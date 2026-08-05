@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
+import io.agentscope.core.event.ThinkingBlockDeltaEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.UserMessage;
@@ -156,6 +157,9 @@ public class BabiAgentController {
                     if (event instanceof TextBlockDeltaEvent e) {
                         String delta = e.getDelta() != null ? e.getDelta() : "";
                         sink.next(sse("token", Map.of("type", "token", "data", delta)));
+                    } else if (event instanceof ThinkingBlockDeltaEvent e) {
+                        String delta = e.getDelta() != null ? e.getDelta() : "";
+                        sink.next(sse("reasoning", Map.of("type", "reasoning", "data", delta)));
                     } else if (event instanceof ToolResultEndEvent e) {
                         String toolName = e.getToolCallName() != null ? e.getToolCallName() : "unknown";
                         String state = e.getState() != null ? e.getState().name() : "UNKNOWN";

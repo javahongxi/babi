@@ -313,6 +313,17 @@ public class DashScopeChatModel implements ChatModel {
                         continue;
                     }
 
+                    // Extract reasoning content if present
+                    String reasoning = msg.getReasoningContent();
+                    if (reasoning != null && !reasoning.isEmpty()) {
+                        AssistantMessage reasoningMsg = AssistantMessage.builder()
+                                .content("")
+                                .properties(Map.of("reasoningContent", reasoning))
+                                .build();
+                        sink.next(new ChatResponse(
+                                List.of(new org.springframework.ai.chat.model.Generation(reasoningMsg))));
+                    }
+
                     // If this chunk has tool calls, skip text emission
                     if (hasToolCalls) {
                         continue;
