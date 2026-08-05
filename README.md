@@ -4,11 +4,11 @@
 
 本项目包含三个 Java 实现版本：
 
-| 模块                 | 技术栈                                    | 定位                        |
-|----------------------|-------------------------------------------|-----------------------------|
-| **babi-agent**       | AgentScope Java 2.0.0 + Spring Boot 4.1.0 | 主版本，功能完整            |
-| **babi-graph**       | LangGraph4j 1.8.20 + Spring Boot 4.1.0    | 替代实现，基于图编排        |
-| **babi-spring**      | Spring AI 2.0.0 + Spring Boot 4.1.0       | 轻量实现，纯 Spring AI 驱动 |
+| 模块                 | 技术栈                                    | 定位                           |
+|----------------------|-------------------------------------------|--------------------------------|
+| **babi-agent**       | AgentScope Java 2.0.0 + Spring Boot 4.1.0 | 主版本，框架能力最强，开箱即用 |
+| **babi-graph**       | LangGraph4j 1.8.20 + Spring Boot 4.1.0    | 图编排实现，生态主流，灵活可控 |
+| **babi-spring**      | Spring AI 2.0.0 + Spring Boot 4.1.0       | 轻量实现，适合深度定制         |
 
 另有 Python 实现版本：
 
