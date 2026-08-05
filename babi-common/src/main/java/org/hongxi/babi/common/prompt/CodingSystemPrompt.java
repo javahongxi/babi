@@ -45,6 +45,7 @@ public final class CodingSystemPrompt {
                 workspaceSection(workspace),
                 coreRulesSection(enableSearch),
                 githubSection(),
+                imageGenerationSection(skills),
                 skillsSection(skills),
                 guidelinesSection(enableSearch),
                 custom
@@ -155,6 +156,47 @@ public final class CodingSystemPrompt {
                    If the token is missing, the tool will return a clear error message —
                    let the tool tell you that, do not preemptively deny the capability.
                 """;
+    }
+
+    private static String imageGenerationSection(Collection<Skill> skills) {
+        // Check if any image-related skill is available
+        boolean hasImageSkill = false;
+        if (skills != null) {
+            for (Skill skill : skills) {
+                String lower = (skill.name() + " " + skill.description()).toLowerCase();
+                if (lower.contains("image")) {
+                    hasImageSkill = true;
+                    break;
+                }
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
+                IMAGE GENERATION ROUTING:
+                When the user requests image creation or editing, choose the right approach:
+
+                1. TEXT-TO-IMAGE (simple generation from text description):
+                   → Use the `generate_image` tool directly.
+                   → Examples: "draw a cat", "generate a landscape photo", "create a logo".
+
+                2. ADVANCED IMAGE TASKS (editing, multi-image fusion, subject consistency, style transfer, etc.):
+                   → These require specialized skills. Check if a relevant skill is available and call `use_skill` to load it.
+                """);
+
+        if (!hasImageSkill) {
+            sb.append("""
+
+                   ⚠ No image-related skills are currently installed.
+                   If the user's request requires advanced image capabilities, suggest they install the skill pack:
+                   ```
+                   npx skills add QianWen-AI/qianwen-ai
+                   ```
+                   Then retry the request after the skill is installed.
+                """);
+        }
+
+        return sb.toString();
     }
 
     private static String skillsSection(Collection<Skill> skills) {
