@@ -6,16 +6,7 @@ import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.spring.advisor.ToolCallObservationAdvisor;
 import org.hongxi.babi.spring.model.DashScopeChatModel;
-import org.hongxi.babi.spring.tool.CodeSearchTool;
-import org.hongxi.babi.spring.tool.FetchUrlTool;
-import org.hongxi.babi.spring.tool.FileEditTool;
-import org.hongxi.babi.spring.tool.FileReadTool;
-import org.hongxi.babi.spring.tool.GitHubApiTool;
-import org.hongxi.babi.spring.tool.GlobTool;
-import org.hongxi.babi.spring.tool.HttpRequestTool;
-import org.hongxi.babi.spring.tool.ShellCommandTool;
-import org.hongxi.babi.spring.tool.SkillTool;
-import org.hongxi.babi.spring.tool.WebSearchTool;
+import org.hongxi.babi.spring.tool.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -145,6 +136,14 @@ public class AgentConfiguration {
         // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());
+        }
+
+        // Register ImageGenerationTool if image model is configured
+        if (properties.image() != null && properties.image().model() != null) {
+            tools.add(new ImageGenerationTool(
+                    properties.apiKey(),
+                    properties.image().model(),
+                    properties.image().promptExtend()));
         }
 
         return ChatClient.builder(chatModel)

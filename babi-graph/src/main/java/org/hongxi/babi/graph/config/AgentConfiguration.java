@@ -138,6 +138,17 @@ public class AgentConfiguration {
             tools.add(new WebSearchTool());
         }
 
+        // Register ImageGenerationTool if image model is configured
+        if (properties.image() != null && properties.image().model() != null) {
+            String imageApiKey = properties.image().apiKey() != null
+                    ? properties.image().apiKey()
+                    : chatModelProperties.apiKey();
+            tools.add(new ImageGenerationTool(
+                    imageApiKey,
+                    properties.image().model(),
+                    properties.image().promptExtend()));
+        }
+
         // Build system prompt
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),

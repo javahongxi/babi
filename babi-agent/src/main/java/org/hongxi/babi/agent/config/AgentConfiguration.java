@@ -17,6 +17,7 @@ import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -110,6 +111,14 @@ public class AgentConfiguration {
             toolkit.registerTool(new WebSearchTool());
         }
 
+        // Register ImageGenerationTool if image model is configured
+        if (properties.image() != null && properties.image().model() != null) {
+            toolkit.registerTool(new ImageGenerationTool(
+                    properties.apiKey(),
+                    properties.image().model(),
+                    properties.image().promptExtend()));
+        }
+
         // Build system prompt with workspace info and skills
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
@@ -150,4 +159,5 @@ public class AgentConfiguration {
                 .middleware(new ToolNotificationMiddleware(toolEventBus))
                 .build();
     }
+
 }

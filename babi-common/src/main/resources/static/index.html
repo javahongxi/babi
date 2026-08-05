@@ -213,11 +213,10 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         const sessionIdInput = document.getElementById('session-id');
-        // All stream state is local to sendMessage() — no globals needed
-        let isSending = false; // Guard against EventSource auto-reconnect duplicates
-        let lastSessionId = sessionIdInput.value.trim() || 'default'; // Track session ID to detect changes
-        let currentEventSource = null; // Track current EventSource for interrupt
-        let currentSessionIdForInterrupt = null; // Track session ID for interrupt
+        let isSending = false;
+        let lastSessionId = sessionIdInput.value.trim() || 'default';
+        let currentAbortController = null; // Track current fetch AbortController for interrupt
+        let currentSessionIdForInterrupt = null;
 
         // Load UI config from server
         fetch('/api/ui/config')
@@ -490,7 +489,7 @@
         function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
-            if (isSending) return; // Prevent duplicate sends (EventSource auto-reconnect)
+            if (isSending) return;
             isSending = true;
 
             const sessionId = sessionIdInput.value.trim() || 'default';
@@ -499,7 +498,6 @@
             userInput.value = '';
             userInput.style.height = 'auto';
 
-            // --- All stream state is LOCAL to this invocation ---
             const agentMsg = document.createElement('div');
             agentMsg.className = 'msg agent';
             chatInner.appendChild(agentMsg);
@@ -520,85 +518,115 @@
             const tokenElRef = { el: null };
             const textRef = { text: '' };
             const countRef = { n: 0, summaryEl: null };
-
             const scheduleRender = makeScheduleRender(tokenElRef, textRef);
 
-            const url = '/api/chat/stream?message=' + encodeURIComponent(message) + '&sessionId=' + encodeURIComponent(sessionId);
-            const eventSource = new EventSource(url);
-            currentEventSource = eventSource;
             currentSessionIdForInterrupt = sessionId;
+            const abortController = new AbortController();
+            currentAbortController = abortController;
 
-            eventSource.addEventListener('token', function(e) {
-                if (indicator.parentNode) indicator.remove();
-                const data = JSON.parse(e.data);
-                rawText += data.data;
-                textRef.text = rawText;
-                if (!tokenEl) {
-                    tokenEl = document.createElement('div');
-                    tokenEl.className = 'token-text';
-                    agentMsg.appendChild(tokenEl);
-                    tokenElRef.el = tokenEl;
-                }
-                scheduleRender();
-            });
+            // Use POST with JSON body to avoid URL length limits
+            fetch('/api/chat/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, sessionId: sessionId }),
+                signal: abortController.signal
+            }).then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-            eventSource.addEventListener('tool_call', function(e) {
-                if (!e.data) return;
-                const data = JSON.parse(e.data);
-                if (!data) return;
-                if (indicator.parentNode) indicator.remove();
-                addToolEvent(agentMsg, data.tool || 'unknown', 'tool_call', null, countRef);
-            });
-
-            eventSource.addEventListener('tool_result', function(e) {
-                if (!e.data) return;
-                const data = JSON.parse(e.data);
-                if (!data) return;
-                addToolEvent(agentMsg, data.tool || 'unknown', 'tool_result', data.state, countRef);
-            });
-
-            eventSource.addEventListener('done', function() {
-                if (indicator.parentNode) indicator.remove();
-                if (tokenEl && rawText) {
-                    renderMarkdown(tokenEl, rawText);
-                }
-                scrollToBottom();
-                eventSource.close();
-                resetSendButton();
-                userInput.focus();
-            });
-
-            eventSource.onerror = function() {
-                // Always close immediately to prevent EventSource auto-reconnect
-                eventSource.close();
-                if (indicator.parentNode) indicator.remove();
-                if (!rawText.trim()) {
-                    // Check if this was an interrupt (user clicked stop)
-                    if (currentEventSource === null) {
-                        // Interrupted by user, show partial content or nothing
-                        if (tokenEl && rawText) {
-                            renderMarkdown(tokenEl, rawText);
+                function pump() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            if (buffer.trim()) processBuffer(buffer + '\n');
+                            finishStream();
+                            return;
                         }
-                    } else {
-                        agentMsg.textContent = '⚠️ 连接中断，请重试';
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // keep incomplete line
+                        processSseLines(lines);
+                        return pump();
+                    });
+                }
+
+                function processSseLines(lines) {
+                    let event = '', data = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event:')) {
+                            event = line.slice(6).trim();
+                        } else if (line.startsWith('data:')) {
+                            data = line.slice(5).trim();
+                        } else if (line === '' && event) {
+                            handleEvent(event, data);
+                            event = ''; data = '';
+                        }
                     }
-                } else if (tokenEl && rawText) {
-                    renderMarkdown(tokenEl, rawText);
+                }
+
+                function processBuffer(remaining) {
+                    const lines = remaining.split('\n');
+                    processSseLines(lines);
+                }
+
+                function handleEvent(event, data) {
+                    if (!data) return;
+                    if (indicator.parentNode) indicator.remove();
+                    if (event === 'token') {
+                        const parsed = JSON.parse(data);
+                        rawText += parsed.data;
+                        textRef.text = rawText;
+                        if (!tokenEl) {
+                            tokenEl = document.createElement('div');
+                            tokenEl.className = 'token-text';
+                            agentMsg.appendChild(tokenEl);
+                            tokenElRef.el = tokenEl;
+                        }
+                        scheduleRender();
+                    } else if (event === 'tool_call') {
+                        const parsed = JSON.parse(data);
+                        addToolEvent(agentMsg, parsed.tool || 'unknown', 'tool_call', null, countRef);
+                    } else if (event === 'tool_result') {
+                        const parsed = JSON.parse(data);
+                        addToolEvent(agentMsg, parsed.tool || 'unknown', 'tool_result', parsed.state, countRef);
+                    } else if (event === 'done') {
+                        finishStream();
+                        resetSendButton();
+                        userInput.focus();
+                    }
+                }
+
+                function finishStream() {
+                    if (indicator.parentNode) indicator.remove();
+                    if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
+                    scrollToBottom();
+                }
+
+                return pump();
+            }).catch(err => {
+                if (err.name === 'AbortError') {
+                    // User interrupted — show partial content
+                    if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
+                } else {
+                    console.error('Stream error:', err);
+                    if (!rawText.trim()) agentMsg.textContent = '⚠️ 连接中断，请重试';
+                    else if (tokenEl && rawText) renderMarkdown(tokenEl, rawText);
                 }
                 scrollToBottom();
                 resetSendButton();
                 userInput.focus();
-            };
+            });
         }
 
         // Interrupt the current stream and stop LLM generation
         function interruptStream() {
             if (!isSending) return;
             const sessionId = currentSessionIdForInterrupt || sessionIdInput.value.trim() || 'default';
-            // Close EventSource first to stop receiving events
-            if (currentEventSource) {
-                currentEventSource.close();
-                currentEventSource = null;
+            // Abort the fetch request to stop receiving events
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
             }
             // Call interrupt API to stop LLM token generation
             fetch('/api/chat/interrupt?sessionId=' + encodeURIComponent(sessionId), { method: 'POST' })
@@ -617,7 +645,7 @@
             sendBtn.textContent = '发送';
             sendBtn.classList.remove('stop-btn');
             sendBtn.onclick = sendMessage;
-            currentEventSource = null;
+            currentAbortController = null;
             currentSessionIdForInterrupt = null;
         }
 

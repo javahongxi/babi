@@ -10,6 +10,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Endpoints:
  * <ul>
- *   <li>{@code GET /api/chat/stream} — SSE streaming (form params: message, sessionId)</li>
+ *   <li>{@code GET /api/chat/stream} — SSE streaming (query params: message, sessionId)</li>
+ *   <li>{@code POST /api/chat/stream} — SSE streaming (JSON body: {message, sessionId})</li>
  *   <li>{@code GET /api/chat/send} — synchronous reply</li>
  *   <li>{@code DELETE /api/chat/session} — delete a session</li>
  *   <li>{@code DELETE /api/chat/memory} — clear session memory</li>
@@ -69,9 +71,23 @@ public class BabiAgentController {
      * </ol>
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamChat(
+    public Flux<ServerSentEvent<String>> streamChatGet(
             @RequestParam String message,
             @RequestParam(defaultValue = "default") String sessionId) {
+        return doStreamChat(message, sessionId);
+    }
+
+    /**
+     * SSE streaming chat endpoint (POST with JSON body).
+     */
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> streamChatPost(@RequestBody Map<String, String> body) {
+        String message = body.getOrDefault("message", "");
+        String sessionId = body.getOrDefault("sessionId", "default");
+        return doStreamChat(message, sessionId);
+    }
+
+    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId) {
         log.debug(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
 
         if (!activeSessions.add(sessionId)) {

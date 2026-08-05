@@ -7,7 +7,9 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 public record DashScopeProperties(
         String apiKey,
         @NestedConfigurationProperty
-        ChatProperties chat
+        ChatProperties chat,
+        @NestedConfigurationProperty
+        ImageProperties image
 ) {
     static final String PREFIX = "babi.dashscope";
 }

@@ -7,7 +7,10 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 public record Properties(
 
     @NestedConfigurationProperty
-    ChatModelProperties streamingChatModel
+    ChatModelProperties streamingChatModel,
+
+    @NestedConfigurationProperty
+    ImageProperties image
 ) {
     static final String PREFIX = "babi.open-ai";
 }
