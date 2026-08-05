@@ -96,15 +96,18 @@ babi --workspace ~/other-project # 指定其他工作区（可选）
 
 Skills 是 Markdown 格式的可复用工作流指令，从以下目录自动加载（后者覆盖前者）：
 
-| 优先级 | 目录 | 说明 |
-|--------|------|------|
-| 低 | `~/.agents/skills/` | 全局共享 Skills |
-| 中 | `~/.babi/skills/` | Babi 专属 Skills |
-| 高 | `{workspace}/.qoder/skills/` | 项目级 Skills（相对于工作区根目录） |
+| 优先级 | 目录                         | 说明                                |
+|--------|------------------------------|-------------------------------------|
+| 低     | `~/.agents/skills/`          | 全局共享 Skills                     |
+| 中     | `~/.babi/skills/`            | Babi 专属 Skills                    |
+| 高     | `{workspace}/.qoder/skills/` | 项目级 Skills（相对于工作区根目录） |
 
 支持两种文件格式：
 - **单文件**：`my-skill.md`
 - **目录格式**：`my-skill/SKILL.md`
+
+> 技巧：本地安装 qianwen 技能后，当用户需要生成图片时，Babi 会调用 qianwen 技能生成图片。
+> Babi 内置了 ImageGenerationTool，但默认不启用，推荐使用 qianwen 技能。
 
 ## 卸载
 
