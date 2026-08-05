@@ -172,28 +172,20 @@ public final class CodingSystemPrompt {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("""
-                IMAGE GENERATION ROUTING:
-                When the user requests image creation or editing, choose the right approach:
 
-                1. TEXT-TO-IMAGE (simple generation from text description):
-                   → Use the `generate_image` tool directly.
-                   → Examples: "draw a cat", "generate a landscape photo", "create a logo".
-
-                2. ADVANCED IMAGE TASKS (editing, multi-image fusion, subject consistency, style transfer, etc.):
-                   → These require specialized skills. Check if a relevant skill is available and call `use_skill` to load it.
-                """);
-
-        if (!hasImageSkill) {
+        if (hasImageSkill) {
             sb.append("""
-
-                   ⚠ No image-related skills are currently installed.
-                   If the user's request requires advanced image capabilities, suggest they install the skill pack:
-                   ```
-                   npx skills add QianWen-AI/qianwen-ai
-                   ```
-                   Then retry the request after the skill is installed.
-                """);
+                    IMAGE GENERATION:
+                    Image-related skills are installed. ALWAYS use `use_skill` to load the
+                    relevant image skill for ANY image creation or editing request.
+                    Skills provide the best quality and full capabilities.
+                    """);
+        } else {
+            sb.append("""
+                    IMAGE GENERATION:
+                    Use the `generate_image` tool for text-to-image generation.
+                    Examples: "draw a cat", "generate a landscape photo", "create a logo".
+                    """);
         }
 
         return sb.toString();
