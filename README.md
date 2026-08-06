@@ -41,11 +41,11 @@
 
 各模块默认均使用 Qwen 系列模型：
 
-| 模块            | 模型        | SDK                                     | 环境变量            |
-|-----------------|-------------|-----------------------------------------|---------------------|
-| **babi-agent**  | qwen3.8-max | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
-| **babi-graph**  | qwen3.8-max | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
-| **babi-spring** | qwen3.8-max | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
+| 模块            | 模型         | SDK                                     | 环境变量            |
+|-----------------|--------------|-----------------------------------------|---------------------|
+| **babi-agent**  | qwen3.7-plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
+| **babi-graph**  | qwen3.7-plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
+| **babi-spring** | qwen3.7-plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
 
 > babi-agent 支持配置备用模型，当主模型不可用时，自动切换到备用模型，这是由框架支持的。
 >
@@ -57,8 +57,8 @@
 # 阿里云百炼 API Key
 export DASHSCOPE_API_KEY=your_api_key
 
-# 可选 — 模型名称，默认 qwen3.8-max，可配置 DashScope 支持的其他模型，如 deepseek-v4-flash
-export BABI_DASHSCOPE_CHAT_MODEL=qwen3.8-max
+# 可选 — 模型名称，默认 qwen3.7-plus，可配置 DashScope 支持的其他模型，如 deepseek-v4-flash
+export BABI_DASHSCOPE_CHAT_MODEL=qwen3.7-plus
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
 export GITHUB_TOKEN=your_github_token

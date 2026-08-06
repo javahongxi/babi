@@ -45,12 +45,10 @@ import java.util.Map;
  * DashScope Chat Model implementation that adapts the DashScope Java SDK
  * to Spring AI's {@link ChatModel} interface.
  *
- * <p>This implementation uses the DashScope SDK's {@link MultiModalConversation}
- * API (multimodal-generation endpoint) instead of the {@code Generation} API
- * (text-generation endpoint), because newer models like qwen3.7-plus are
- * multimodal models that require the multimodal-generation endpoint.
- * Using the text-generation endpoint with such models results in
- * {@code 400 url error, please check url}.
+ * <p>Automatically routes to the appropriate DashScope API based on model type:
+ * multimodal models use {@link MultiModalConversation} API, while text-only models
+ * use {@link Generation} API. Model detection is handled by
+ * {@link org.hongxi.babi.common.util.DashScopeEndpointUtil#isMultimodalModel(String)}.
  *
  * <p>Supports both synchronous and streaming modes with proper tool call handling.
  * For streaming, tool call chunks are accumulated and merged before emitting,

@@ -61,8 +61,10 @@ import reactor.core.publisher.Sinks;
  * {@link StreamingChatModel} interfaces, allowing langgraph4j's agent-executor
  * (which is built on langchain4j types) to use DashScope directly.
  *
- * <p>Uses the DashScope {@link MultiModalConversation} API (multimodal-generation
- * endpoint) to support both text-only and multimodal models like qwen3.8-max.
+ * <p>Automatically routes to the appropriate DashScope API based on model type:
+ * multimodal models use {@link MultiModalConversation} API, while text-only models
+ * use {@link Generation} API. Model detection is handled by
+ * {@link org.hongxi.babi.common.util.DashScopeEndpointUtil#isMultimodalModel(String)}.
  *
  * <p>Supports:
  * <ul>
