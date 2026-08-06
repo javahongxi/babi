@@ -1,9 +1,14 @@
 package org.hongxi.babi.graph.model;
 
+import com.alibaba.dashscope.aigc.generation.Generation;
+import com.alibaba.dashscope.aigc.generation.GenerationOutput;
+import com.alibaba.dashscope.aigc.generation.GenerationParam;
+import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
+import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.MultiModalMessage;
 import com.alibaba.dashscope.common.Role;
 import com.alibaba.dashscope.tools.FunctionDefinition;
@@ -108,7 +113,9 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     private final Double temperature;
     private final Double topP;
     private final boolean enableSearch;
-    private final MultiModalConversation conversation;
+    private final boolean multimodal;
+    private final MultiModalConversation conversation;  // for multimodal models
+    private final Generation generation;                 // for text-only models
 
     public DashScopeChatModel(String apiKey,
                               String model,
@@ -120,7 +127,35 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
         this.temperature = temperature;
         this.topP = topP;
         this.enableSearch = enableSearch;
-        this.conversation = new MultiModalConversation();
+        this.multimodal = isMultimodalModel(model);
+        this.conversation = multimodal ? new MultiModalConversation() : null;
+        this.generation = multimodal ? null : new Generation();
+        log.info("DashScope model '{}' routed to {} API", model, multimodal ? "multimodal" : "text-generation");
+    }
+
+    /**
+     * Set of model name prefixes that require the multimodal API endpoint.
+     * Follows the same logic as agentscope-java's DashScopeModelProvider.
+     */
+    private static final java.util.Set<String> MULTIMODAL_MODELS = java.util.Set.of(
+            "qwen3.5", "qwen3.6", "qwen3.7", "qwen3.8",
+            "qvq", "kimi-k2.5", "kimi-k2.6");
+
+    /**
+     * Determine if a model name requires the multimodal API endpoint.
+     * Follows the same logic as agentscope-java's DashScopeModelProvider.isMultimodalModel().
+     */
+    static boolean isMultimodalModel(String modelName) {
+        if (modelName == null) {
+            return false;
+        }
+        String lower = modelName.toLowerCase();
+        for (String prefix : MULTIMODAL_MODELS) {
+            if (lower.contains(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -149,15 +184,26 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        List<MultiModalMessage> dashScopeMessages = convertMessages(chatRequest.messages());
-        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
-                buildParam(dashScopeMessages, chatRequest, false);
-
-        try {
-            MultiModalConversationResult result = conversation.call(builder.build());
-            return convertToChatResponse(result);
-        } catch (Exception e) {
-            throw new RuntimeException("DashScope API call failed", e);
+        if (multimodal) {
+            List<MultiModalMessage> messages = convertMultiModalMessages(chatRequest.messages());
+            MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
+                    buildMultiModalParam(messages, chatRequest, false);
+            try {
+                MultiModalConversationResult result = conversation.call(builder.build());
+                return convertMultiModalToChatResponse(result);
+            } catch (Exception e) {
+                throw new RuntimeException("DashScope API call failed", e);
+            }
+        } else {
+            List<Message> messages = convertTextMessages(chatRequest.messages());
+            GenerationParam.GenerationParamBuilder<?, ?> builder =
+                    buildTextParam(messages, chatRequest, false);
+            try {
+                GenerationResult result = generation.call(builder.build());
+                return convertTextToChatResponse(result);
+            } catch (Exception e) {
+                throw new RuntimeException("DashScope API call failed", e);
+            }
         }
     }
 
@@ -167,15 +213,26 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        List<MultiModalMessage> dashScopeMessages = convertMessages(chatRequest.messages());
-        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
-                buildParam(dashScopeMessages, chatRequest, true);
-
-        try {
-            Flowable<MultiModalConversationResult> flowable = conversation.streamCall(builder.build());
-            handleStreaming(flowable, chatRequest, handler);
-        } catch (Exception e) {
-            handler.onError(new RuntimeException("DashScope streaming call failed", e));
+        if (multimodal) {
+            List<MultiModalMessage> messages = convertMultiModalMessages(chatRequest.messages());
+            MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
+                    buildMultiModalParam(messages, chatRequest, true);
+            try {
+                Flowable<MultiModalConversationResult> flowable = conversation.streamCall(builder.build());
+                handleMultiModalStreaming(flowable, chatRequest, handler);
+            } catch (Exception e) {
+                handler.onError(new RuntimeException("DashScope streaming call failed", e));
+            }
+        } else {
+            List<Message> messages = convertTextMessages(chatRequest.messages());
+            GenerationParam.GenerationParamBuilder<?, ?> builder =
+                    buildTextParam(messages, chatRequest, true);
+            try {
+                Flowable<GenerationResult> flowable = generation.streamCall(builder.build());
+                handleTextStreaming(flowable, chatRequest, handler);
+            } catch (Exception e) {
+                handler.onError(new RuntimeException("DashScope streaming call failed", e));
+            }
         }
     }
 
@@ -183,7 +240,11 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     // Parameter building
     // =========================================================================
 
-    private MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> buildParam(
+    // =========================================================================
+    // Multimodal API parameter building (multimodal-generation endpoint)
+    // =========================================================================
+
+    private MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> buildMultiModalParam(
             List<MultiModalMessage> messages, ChatRequest chatRequest, boolean streaming) {
 
         MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
@@ -219,10 +280,53 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     }
 
     // =========================================================================
+    // Text API parameter building (text-generation endpoint)
+    // =========================================================================
+
+    private GenerationParam.GenerationParamBuilder<?, ?> buildTextParam(
+            List<Message> messages, ChatRequest chatRequest, boolean streaming) {
+
+        GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
+                .apiKey(apiKey)
+                .model(model)
+                .messages(messages)
+                .enableSearch(enableSearch)
+                .resultFormat(GenerationParam.ResultFormat.MESSAGE);
+
+        if (streaming) {
+            builder.incrementalOutput(true);
+        }
+        if (temperature != null) {
+            builder.temperature(temperature.floatValue());
+        }
+        if (topP != null) {
+            builder.topP(topP);
+        }
+
+        // Convert tool specifications from langchain4j to DashScope
+        if (chatRequest.parameters() != null && chatRequest.parameters().toolSpecifications() != null) {
+            List<ToolSpecification> toolSpecs = chatRequest.parameters().toolSpecifications();
+            if (!toolSpecs.isEmpty()) {
+                List<com.alibaba.dashscope.tools.ToolBase> tools = new ArrayList<>();
+                for (ToolSpecification spec : toolSpecs) {
+                    tools.add(convertToolSpecification(spec));
+                }
+                builder.tools(tools);
+            }
+        }
+
+        return builder;
+    }
+
+    // =========================================================================
     // Message conversion: langchain4j → DashScope
     // =========================================================================
 
-    private List<MultiModalMessage> convertMessages(List<ChatMessage> messages) {
+    // =========================================================================
+    // Message conversion: langchain4j → DashScope MultimodalMessage
+    // =========================================================================
+
+    private List<MultiModalMessage> convertMultiModalMessages(List<ChatMessage> messages) {
         List<MultiModalMessage> result = new ArrayList<>();
         for (ChatMessage msg : messages) {
             if (msg.type() == ChatMessageType.SYSTEM) {
@@ -270,6 +374,56 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     }
 
     // =========================================================================
+    // Message conversion: langchain4j → DashScope Message (text-only)
+    // =========================================================================
+
+    private List<Message> convertTextMessages(List<ChatMessage> messages) {
+        List<Message> result = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            if (msg.type() == ChatMessageType.SYSTEM) {
+                result.add(Message.builder()
+                        .role(Role.SYSTEM.getValue())
+                        .content(((SystemMessage) msg).text())
+                        .build());
+            } else if (msg.type() == ChatMessageType.USER) {
+                result.add(Message.builder()
+                        .role(Role.USER.getValue())
+                        .content(((UserMessage) msg).singleText())
+                        .build());
+            } else if (msg.type() == ChatMessageType.AI) {
+                AiMessage aiMsg = (AiMessage) msg;
+                Message.MessageBuilder<?, ?> msgBuilder = Message.builder()
+                        .role(Role.ASSISTANT.getValue())
+                        .content(aiMsg.text() != null ? aiMsg.text() : "");
+                if (aiMsg.hasToolExecutionRequests()) {
+                    List<ToolCallBase> toolCalls = new ArrayList<>();
+                    for (ToolExecutionRequest req : aiMsg.toolExecutionRequests()) {
+                        ToolCallFunction tcf = new ToolCallFunction();
+                        tcf.setId(req.id());
+                        tcf.setType("function");
+                        ToolCallFunction.CallFunction cf = tcf.new CallFunction();
+                        cf.setName(req.name());
+                        cf.setArguments(req.arguments());
+                        tcf.setFunction(cf);
+                        toolCalls.add(tcf);
+                    }
+                    msgBuilder.toolCalls(toolCalls);
+                }
+                result.add(msgBuilder.build());
+            } else if (msg.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
+                ToolExecutionResultMessage toolMsg = (ToolExecutionResultMessage) msg;
+                result.add(Message.builder()
+                        .role(Role.TOOL.getValue())
+                        .content(toolMsg.text())
+                        .toolCallId(toolMsg.id())
+                        .name(toolMsg.toolName())
+                        .build());
+            }
+        }
+        return result;
+    }
+
+    // =========================================================================
     // Tool specification conversion
     // =========================================================================
 
@@ -292,7 +446,11 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     // Response conversion: DashScope → langchain4j
     // =========================================================================
 
-    private ChatResponse convertToChatResponse(MultiModalConversationResult result) {
+    // =========================================================================
+    // Response conversion: DashScope MultiModal → langchain4j
+    // =========================================================================
+
+    private ChatResponse convertMultiModalToChatResponse(MultiModalConversationResult result) {
         if (result.getOutput() == null || result.getOutput().getChoices() == null
                 || result.getOutput().getChoices().isEmpty()) {
             return ChatResponse.builder()
@@ -305,24 +463,67 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
         MultiModalMessage message = choice.getMessage();
 
         String text = extractText(message.getContent());
-        List<ToolExecutionRequest> toolExecReqs = extractToolExecutionRequests(message);
+        List<ToolExecutionRequest> toolExecReqs = extractMultiModalToolRequests(message);
 
-        AiMessage aiMessage;
-        if (!toolExecReqs.isEmpty()) {
-            aiMessage = AiMessage.from(text, toolExecReqs);
-        } else {
-            aiMessage = AiMessage.from(text);
-        }
-
-        FinishReason finishReason = mapFinishReason(choice.getFinishReason(), !toolExecReqs.isEmpty());
+        AiMessage aiMessage = toolExecReqs.isEmpty()
+                ? AiMessage.from(text)
+                : AiMessage.from(text, toolExecReqs);
 
         return ChatResponse.builder()
                 .aiMessage(aiMessage)
-                .finishReason(finishReason)
+                .finishReason(mapFinishReason(choice.getFinishReason(), !toolExecReqs.isEmpty()))
                 .build();
     }
 
-    private List<ToolExecutionRequest> extractToolExecutionRequests(MultiModalMessage message) {
+    private List<ToolExecutionRequest> extractMultiModalToolRequests(MultiModalMessage message) {
+        if (message.getToolCalls() == null || message.getToolCalls().isEmpty()) {
+            return List.of();
+        }
+        List<ToolExecutionRequest> result = new ArrayList<>();
+        for (ToolCallBase tcb : message.getToolCalls()) {
+            if (tcb instanceof ToolCallFunction tcf) {
+                String rawArgs = tcf.getFunction() != null && tcf.getFunction().getArguments() != null
+                        ? tcf.getFunction().getArguments() : "";
+                result.add(ToolExecutionRequest.builder()
+                        .id(tcf.getId() != null ? tcf.getId() : "")
+                        .name(tcf.getFunction() != null ? tcf.getFunction().getName() : "")
+                        .arguments(normalizeToolArguments(rawArgs))
+                        .build());
+            }
+        }
+        return result;
+    }
+
+    // =========================================================================
+    // Response conversion: DashScope Generation → langchain4j
+    // =========================================================================
+
+    private ChatResponse convertTextToChatResponse(GenerationResult result) {
+        if (result.getOutput() == null || result.getOutput().getChoices() == null
+                || result.getOutput().getChoices().isEmpty()) {
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(""))
+                    .finishReason(FinishReason.STOP)
+                    .build();
+        }
+
+        GenerationOutput.Choice choice = result.getOutput().getChoices().get(0);
+        Message message = choice.getMessage();
+
+        String text = message.getContent() != null ? message.getContent() : "";
+        List<ToolExecutionRequest> toolExecReqs = extractTextToolRequests(message);
+
+        AiMessage aiMessage = toolExecReqs.isEmpty()
+                ? AiMessage.from(text)
+                : AiMessage.from(text, toolExecReqs);
+
+        return ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .finishReason(mapFinishReason(choice.getFinishReason(), !toolExecReqs.isEmpty()))
+                .build();
+    }
+
+    private List<ToolExecutionRequest> extractTextToolRequests(Message message) {
         if (message.getToolCalls() == null || message.getToolCalls().isEmpty()) {
             return List.of();
         }
@@ -358,9 +559,13 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     // Streaming handler
     // =========================================================================
 
-    private void handleStreaming(Flowable<MultiModalConversationResult> flowable,
-                                 ChatRequest chatRequest,
-                                 StreamingChatResponseHandler handler) {
+    // =========================================================================
+    // Streaming handler: Multimodal
+    // =========================================================================
+
+    private void handleMultiModalStreaming(Flowable<MultiModalConversationResult> flowable,
+                                           ChatRequest chatRequest,
+                                           StreamingChatResponseHandler handler) {
         // Accumulator for tool call chunks in incremental output mode
         Map<Integer, AccumulatedToolCall> toolCallAccumulator = new HashMap<>();
         boolean hasToolCalls = false;
@@ -433,6 +638,94 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
                         .build());
             } else {
                 // Text-only stream: emit final marker
+                AiMessage aiMessage = AiMessage.from("");
+                FinishReason finishReason = mapFinishReason(lastFinishReason, false);
+                handler.onCompleteResponse(ChatResponse.builder()
+                        .aiMessage(aiMessage)
+                        .finishReason(finishReason)
+                        .build());
+            }
+        } catch (Exception e) {
+            handler.onError(e);
+            return;
+        }
+    }
+
+    // =========================================================================
+    // Streaming handler: Text Generation
+    // =========================================================================
+
+    private void handleTextStreaming(Flowable<GenerationResult> flowable,
+                                     ChatRequest chatRequest,
+                                     StreamingChatResponseHandler handler) {
+        Map<Integer, AccumulatedToolCall> toolCallAccumulator = new HashMap<>();
+        boolean hasToolCalls = false;
+        GenerationResult lastResult = null;
+        String lastFinishReason = null;
+
+        try {
+            for (GenerationResult result : flowable.blockingIterable()) {
+                if (result.getOutput() == null || result.getOutput().getChoices() == null
+                        || result.getOutput().getChoices().isEmpty()) {
+                    continue;
+                }
+
+                GenerationOutput.Choice choice = result.getOutput().getChoices().get(0);
+                Message msg = choice.getMessage();
+                lastResult = result;
+
+                String fr = choice.getFinishReason();
+                if (fr != null && !fr.isEmpty()) {
+                    lastFinishReason = fr;
+                }
+
+                // Handle tool call chunks — accumulate them
+                if (msg.getToolCalls() != null && !msg.getToolCalls().isEmpty()) {
+                    hasToolCalls = true;
+                    for (ToolCallBase tcb : msg.getToolCalls()) {
+                        if (tcb instanceof ToolCallFunction tcf) {
+                            int idx = tcf.getIndex() != null ? tcf.getIndex() : 0;
+                            toolCallAccumulator.computeIfAbsent(idx, k -> new AccumulatedToolCall())
+                                    .merge(tcf);
+                        }
+                    }
+                    continue;
+                }
+
+                // Handle reasoning/thinking content
+                String reasoning = msg.getReasoningContent();
+                if (reasoning != null && !reasoning.isEmpty()) {
+                    for (Sinks.Many<String> sink : THINKING_SINKS.values()) {
+                        sink.tryEmitNext(reasoning);
+                    }
+                    handler.onPartialThinking(new PartialThinking(reasoning));
+                }
+
+                // If stream has tool calls, suppress text emission
+                if (hasToolCalls) {
+                    continue;
+                }
+
+                // Text-only streaming: emit tokens immediately
+                String content = msg.getContent();
+                if (content != null && !content.isEmpty()) {
+                    for (Sinks.Many<String> sink : TEXT_SINKS.values()) {
+                        sink.tryEmitNext(content);
+                    }
+                    handler.onPartialResponse(content);
+                }
+            }
+
+            // Build and emit final complete response
+            if (hasToolCalls && !toolCallAccumulator.isEmpty()) {
+                List<ToolExecutionRequest> finalToolCalls = buildToolCallsFromAccumulator(toolCallAccumulator);
+                AiMessage aiMessage = AiMessage.from("", finalToolCalls);
+                FinishReason finishReason = mapFinishReason(lastFinishReason, true);
+                handler.onCompleteResponse(ChatResponse.builder()
+                        .aiMessage(aiMessage)
+                        .finishReason(finishReason)
+                        .build());
+            } else {
                 AiMessage aiMessage = AiMessage.from("");
                 FinishReason finishReason = mapFinishReason(lastFinishReason, false);
                 handler.onCompleteResponse(ChatResponse.builder()
