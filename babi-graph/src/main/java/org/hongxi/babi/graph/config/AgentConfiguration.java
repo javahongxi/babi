@@ -8,6 +8,7 @@ import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.agent.Agent;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
+import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.graph.hook.ToolNotificationEdgeHook;
@@ -65,14 +66,12 @@ public class AgentConfiguration {
 
     @Bean
     public StreamingChatModel streamingChatModel(DashScopeProperties properties) {
-        ChatProperties chatProperties = properties.chat();
-
         return new DashScopeChatModel(
                 properties.apiKey(),
-                chatProperties.model(),
-                chatProperties.temperature(),
-                chatProperties.topP(),
-                chatProperties.enableSearch());
+                properties.chat().model(),
+                properties.chat().temperature(),
+                properties.chat().topP(),
+                properties.chat().enableSearch());
     }
 
     @Bean
@@ -82,8 +81,6 @@ public class AgentConfiguration {
             MemorySaver memorySaver,
             StreamingChatModel streamingChatModel,
             DashScopeProperties properties) throws GraphStateException {
-        ChatProperties chatProperties = properties.chat();
-
         // Create tool instances
         List<Object> tools = new LinkedList<>();
         var skillTool = new SkillTool(workspacePath);
@@ -97,7 +94,7 @@ public class AgentConfiguration {
         tools.add(new CodeSearchTool());
         tools.add(new GlobTool());
         // When DashScope native search is enabled, skip the external WebSearchTool
-        if (!chatProperties.enableSearch()) {
+        if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());
         }
 
@@ -113,7 +110,7 @@ public class AgentConfiguration {
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
                 skillTool.getSkills().values(),
-                chatProperties.enableSearch());
+                properties.chat().enableSearch());
 
         // LangGraph4J does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.

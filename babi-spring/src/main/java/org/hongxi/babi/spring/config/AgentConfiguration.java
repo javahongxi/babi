@@ -3,6 +3,7 @@ package org.hongxi.babi.spring.config;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
+import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.spring.advisor.ToolCallObservationAdvisor;
 import org.hongxi.babi.spring.model.DashScopeChatModel;

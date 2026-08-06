@@ -1,4 +1,4 @@
-package org.hongxi.babi.agent.config;
+package org.hongxi.babi.common.config;
 
 public record ImageProperties(
         String model,

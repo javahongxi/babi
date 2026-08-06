@@ -1,4 +1,4 @@
-package org.hongxi.babi.graph.config;
+package org.hongxi.babi.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
