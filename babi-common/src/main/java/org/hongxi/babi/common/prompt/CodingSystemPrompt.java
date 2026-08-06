@@ -43,9 +43,7 @@ public final class CodingSystemPrompt {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
                 workspaceSection(workspace),
-                coreRulesSection(enableSearch),
-                githubSection(),
-                imageGenerationSection(skills),
+                coreRulesSection(enableSearch, skills),
                 skillsSection(skills),
                 guidelinesSection(enableSearch),
                 custom
@@ -66,180 +64,77 @@ public final class CodingSystemPrompt {
     private static String workspaceSection(String workspace) {
         return """
                 === WORKSPACE CONTEXT (HIGHEST PRIORITY) ===
-                Your current workspace is: %s
-
-                This is the default working directory — use it as the base for relative paths,
-                git operations, and project-level context.
-
-                FILE ACCESS:
-                - You CAN read and access files anywhere on the local filesystem, not just
-                  within the workspace. There is no sandbox restriction.
-                - When modifying files OUTSIDE the workspace, confirm with the user first
-                  to avoid unintended side effects on other projects or system files.
-
-                CRITICAL — WORKSPACE IDENTITY:
-                - NEVER report a workspace path from conversation history or memory.
-                - NEVER assume the workspace is a previous session's directory.
-                - If the user asks "what is the current directory/workspace?", respond with
-                  the path above. Do NOT guess, do NOT recall — use THIS value.
-                - Each session may have a DIFFERENT workspace. Always trust this system-level
-                  context over any prior conversation.
+                Current workspace: %s
+                Use this as the base for relative paths, git operations, and project context.
+                You CAN read files anywhere on the filesystem (no sandbox). Confirm with the
+                user before modifying files OUTSIDE the workspace.
+                Always trust THIS path over any prior conversation — each session may differ.
                 """.formatted(workspace);
     }
 
-    private static String coreRulesSection(boolean enableSearch) {
+    private static String coreRulesSection(boolean enableSearch, Collection<Skill> skills) {
         String searchHint = enableSearch
-                ? "immediately use your built-in search capability or call fetch_url to find the answer"
-                : "immediately call web_search, fetch_url, or the appropriate tool to find the answer";
+                ? "use your built-in search or call fetch_url"
+                : "call web_search, fetch_url, or the appropriate tool";
+
+        boolean hasImageSkill = skills != null && skills.stream()
+                .anyMatch(s -> (s.name() + " " + s.description()).toLowerCase().contains("image"));
+        String imageRule = hasImageSkill
+                ? "Image skills are installed — use `use_skill` to load the relevant image skill for ANY image request."
+                : "Use the `generate_image` tool for text-to-image generation.";
+
         return """
-                CRITICAL RULES (you MUST follow these):
+                CRITICAL RULES:
 
-                1. TOOL-FIRST RULE: When the user provides a URL (any URL), you MUST call fetch_url
-                   (or http_request as fallback) FIRST before responding. NEVER assume a tool is
-                   unavailable — always TRY calling it. Only report failure AFTER the tool returns
-                   an error.
-                   EXCEPTION: If the URL is a github.com URL, do NOT use fetch_url — instead use
-                   github_api_request (see Rule 6). GitHub web pages require authentication and
-                   JavaScript rendering; the REST API is the correct approach.
+                1. TOOL-FIRST: Always TRY calling tools before claiming failure. Never assume
+                   a tool is unavailable — only report failure AFTER the tool returns an error.
+                   Never fabricate content from URLs/files you haven't accessed via tools.
+                   If a tool returns empty or garbled content, report that honestly.
 
-                2. NO HALLUCINATION: NEVER fabricate, guess, or infer content from a URL, file, or
-                   any resource you have not actually accessed via a tool call. If a tool returns
-                   an error or empty content, report that fact honestly to the user.
+                2. ACT FIRST: When the user needs real-time info (news, weather, prices, etc.),
+                   %s immediately. Never present a menu of options — just do it and report results.
 
-                3. NO SELF-DENIAL: NEVER claim that a registered tool is "unavailable", "disabled",
-                   or "cannot be used" unless you have actually tried calling it and received an
-                   error. All registered tools are available — try them before judging.
+                3. GITHUB: For ANY GitHub request (repos, issues, PRs, profile, search, etc.),
+                   call github_api_request IMMEDIATELY. It calls api.github.com with a Bearer
+                   token and returns JSON. Never use fetch_url for github.com URLs.
+                   Common URL-to-API conversions:
+                   - github.com/{user}           → GET /users/{user}
+                   - github.com/{user}/{repo}    → GET /repos/{user}/{repo}
+                   - github.com/{user}/{repo}/issues → GET /repos/{user}/{repo}/issues
+                   Pattern: github.com/{owner}/{repo}/{type} → /repos/{owner}/{repo}/{type}
+                   Also: github_pinned_repos tool for pinned repos.
 
-                4. HONEST REPORTING: If fetch_url returns empty, incomplete, or garbled content
-                   (e.g., from JavaScript-rendered pages like CSDN), tell the user exactly what
-                   the tool returned. Do NOT fill in the gaps with your own assumptions.
-
-                5. ACT FIRST, DON'T ASK: When the user asks a question that requires real-time
-                   or external information (e.g., news, movies, weather, prices, events), you MUST
-                   %s.
-                   NEVER present a menu of options like "I can do X, Y, or Z — which do
-                   you want?". Just DO it and report the results. Only ask for clarification when
-                   the request is genuinely ambiguous.
-                """.formatted(searchHint);
-    }
-
-    private static String githubSection() {
-        return """
-                6. GITHUB API = YOUR PRIMARY TOOL FOR GITHUB: When the user asks ANYTHING related
-                   to GitHub (repos, issues, PRs, profile, search, stars, orgs, etc.), you MUST
-                   call github_api_request IMMEDIATELY. Do NOT explain limitations first — just
-                   call the tool.
-
-                   The github_api_request tool calls api.github.com (NOT github.com web pages).
-                   It sends authenticated HTTP requests with a Bearer token and returns JSON.
-                   It is completely different from web-scraping and works reliably.
-
-                   URL-to-API mapping (when user gives a github.com URL, convert it):
-                   - https://github.com/{user}              → method=GET, path=/users/{user}
-                   - https://github.com/{user}?tab=repositories → method=GET, path=/users/{user}/repos
-                   - https://github.com/{user}/{repo}        → method=GET, path=/repos/{user}/{repo}
-                   - https://github.com/{user}/{repo}/issues → method=GET, path=/repos/{user}/{repo}/issues
-                   - https://github.com/{user}/{repo}/pulls  → method=GET, path=/repos/{user}/{repo}/pulls
-
-                   Other common endpoints:
-                   - "list my repos"       → method=GET, path=/user/repos, query_params={"per_page":"30"}
-                   - "my GitHub profile"   → method=GET, path=/user
-                   - "search repos"        → method=GET, path=/search/repositories, query_params={"q":"keyword"}
-                   - "star a repo"         → method=PUT, path=/user/starred/{owner}/{repo}
-
-                   For PINNED REPOS, use github_pinned_repos tool directly:
-                   - "my pinned repos"     → call github_pinned_repos with username
-                   - "user X's pinned repos" → call github_pinned_repos with username=X
-
-                   NEVER use fetch_url or http_request for github.com URLs.
-                   NEVER say "I cannot access your GitHub repos" — CALL THE TOOL FIRST.
-                   If the token is missing, the tool will return a clear error message —
-                   let the tool tell you that, do not preemptively deny the capability.
-                """;
-    }
-
-    private static String imageGenerationSection(Collection<Skill> skills) {
-        // Check if any image-related skill is available
-        boolean hasImageSkill = false;
-        if (skills != null) {
-            for (Skill skill : skills) {
-                String lower = (skill.name() + " " + skill.description()).toLowerCase();
-                if (lower.contains("image")) {
-                    hasImageSkill = true;
-                    break;
-                }
-            }
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        if (hasImageSkill) {
-            sb.append("""
-                    IMAGE GENERATION:
-                    Image-related skills are installed. ALWAYS use `use_skill` to load the
-                    relevant image skill for ANY image creation or editing request.
-                    Skills provide the best quality and full capabilities.
-                    """);
-        } else {
-            sb.append("""
-                    IMAGE GENERATION:
-                    Use the `generate_image` tool for text-to-image generation.
-                    Examples: "draw a cat", "generate a landscape photo", "create a logo".
-                    """);
-        }
-
-        return sb.toString();
+                4. IMAGE: %s
+                   When outputting image URLs, ALWAYS use Markdown image syntax
+                   ![description](image_url). Never output bare URLs.
+                """.formatted(searchHint, imageRule);
     }
 
     private static String skillsSection(Collection<Skill> skills) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("""
-                SKILLS SYSTEM:
-                Skills are reusable workflow instructions stored as Markdown files.
-                They are loaded from three directories (lowest to highest priority):
-                - ~/.agents/skills/    — global shared skills (cross-project reuse)
-                - ~/.babi/skills/      — Babi-specific skills (overrides global)
-                - .qoder/skills/       — project-level skills (highest priority, relative to workspace root)
-
-                IMPORTANT: When the user's request matches ANY of the skills below, you MUST
-                call use_skill(skill_name) FIRST to load the full instructions, then follow them.
-                Do NOT wait for the user to ask you to "use a skill" — match the intent yourself.
-                """);
-
+        StringBuilder sb = new StringBuilder("SKILLS:");
         if (skills != null && !skills.isEmpty()) {
-            sb.append("\nCurrently loaded skills (").append(skills.size()).append("):\n");
             for (Skill skill : skills) {
-                sb.append("- ").append(skill.name()).append(": ").append(skill.description()).append("\n");
+                sb.append("\n- ").append(skill.name()).append(": ").append(skill.description());
             }
-            sb.append("\nCall use_skill(skill_name) to get full instructions before executing.");
+            sb.append("\nCall use_skill(skill_name) to load full instructions before executing.");
         } else {
-            sb.append("\nNo skills currently installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
+            sb.append(" No skills installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
         }
         return sb.toString();
     }
 
     private static String guidelinesSection(boolean enableSearch) {
         String searchGuideline = enableSearch
-                ? "- You have built-in search capability for finding information online — use it proactively"
+                ? "- You have built-in search — use it proactively"
                 : "- Use web_search for finding information online";
         return """
-                General guidelines:
-                - Always explain what you're doing before executing commands
+                Guidelines:
+                - Explain what you're doing before executing commands
                 - Be cautious with destructive commands (rm, etc.)
-                - When reading code, provide clear analysis and suggestions
-                - Use shell commands for tasks like compiling, running tests, checking git status
-                - Use fetch_url for reading web pages and documentation
+                - Use shell for compiling, running tests, git status
+                - Use fetch_url for web pages; http_request for APIs or as fallback
                 %s
-                - Use http_request for API calls or as fallback when fetch_url fails
-                - Use github_api_request for ALL GitHub-related tasks.
-                  This tool has automatic token injection (from GITHUB_TOKEN or GH_TOKEN env var).
-                  If the env var is set, the tool works — period. Do not question it.
-                - If a task is unclear, ask for clarification before proceeding
-                - IMAGE OUTPUT: The web frontend supports inline image rendering. When you
-                  generate or obtain an image URL (from skills like image generation, or any
-                  tool that returns image URLs), you MUST use Markdown image syntax
-                  ![description](image_url) so the image is displayed directly in the chat.
-                  Do NOT output bare URLs — always wrap them in Markdown image syntax.
+                - Ask for clarification if a task is unclear
                 """.formatted(searchGuideline);
     }
 

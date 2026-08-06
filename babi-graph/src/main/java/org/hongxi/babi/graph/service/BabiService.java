@@ -5,9 +5,8 @@ import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
-import org.bsc.langgraph4j.streaming.StreamingOutput;
 import org.hongxi.babi.common.util.SessionContextHolder;
-import org.hongxi.babi.graph.model.ThinkingCaptureChatModel;
+import org.hongxi.babi.graph.model.DashScopeChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -55,13 +54,19 @@ public class BabiService {
 
         Sinks.Many<Map<String, Object>> sink = Sinks.many().unicast().onBackpressureBuffer();
 
-        // Create a thinking sink for capturing LLM reasoning content
+        // Create sinks for capturing LLM content at the model layer
         Sinks.Many<String> thinkingSink = Sinks.many().unicast().onBackpressureBuffer();
-        ThinkingCaptureChatModel.registerSink(sessionId, thinkingSink);
+        Sinks.Many<String> textSink = Sinks.many().unicast().onBackpressureBuffer();
+        DashScopeChatModel.registerThinkingSink(sessionId, thinkingSink);
+        DashScopeChatModel.registerTextSink(sessionId, textSink);
 
         // Thinking stream: map thinking text to "reasoning" events
         Flux<Map<String, Object>> thinkingEvents = thinkingSink.asFlux()
                 .map(text -> Map.<String, Object>of("type", "reasoning", "data", text));
+
+        // Text token stream: map text tokens to "token" events (true streaming)
+        Flux<Map<String, Object>> tokenEvents = textSink.asFlux()
+                .map(text -> Map.<String, Object>of("type", "token", "data", text));
 
         new Thread(() -> {
             try {
@@ -82,16 +87,12 @@ public class BabiService {
                 // Save generator reference for interrupt support
                 activeGenerators.put(sessionId, result);
 
-                // Consume the AsyncGenerator via .stream() -> Java Stream
-                result.stream()
-                        .filter(output -> output instanceof StreamingOutput<?>)
-                        .map(output -> (StreamingOutput<?>) output)
-                        .forEach(so -> {
-                            String chunk = so.chunk();
-                            if (chunk != null && !chunk.isEmpty()) {
-                                sink.tryEmitNext(Map.of("type", "token", "data", chunk));
-                            }
-                        });
+                // Consume the AsyncGenerator to completion
+                // Text tokens are streamed via TEXT_SINKS at the model layer
+                result.stream().forEach(output -> {
+                    // Just consume to drive the graph execution
+                    // Actual text streaming happens via DashScopeChatModel.TEXT_SINKS
+                });
 
                 if (!sink.tryEmitNext(Map.of("type", "done")).isSuccess()) {
                     log.warn("Failed to emit done event for session={}", sessionId);
@@ -105,14 +106,15 @@ public class BabiService {
             } finally {
                 activeSessions.remove(sessionId);
                 activeGenerators.remove(sessionId);
-                ThinkingCaptureChatModel.unregisterSink(sessionId);
+                DashScopeChatModel.unregisterSinks(sessionId);
                 thinkingSink.tryEmitComplete();
+                textSink.tryEmitComplete();
                 SessionContextHolder.clear();
             }
         }, "babi-agent-" + sessionId).start();
 
-        // Merge token stream and thinking stream
-        return Flux.merge(sink.asFlux(), thinkingEvents);
+        // Merge token stream, thinking stream, and completion signal
+        return Flux.merge(tokenEvents, thinkingEvents, sink.asFlux());
     }
 
     /**

@@ -46,6 +46,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import reactor.core.publisher.Sinks;
 
 /**
  * DashScope SDK adapter that implements langchain4j's {@link ChatModel} and
@@ -69,6 +72,36 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(DashScopeChatModel.class);
     private static final Gson GSON = new Gson();
+
+    /** Per-session sinks for thinking content, set by BabiService before graph execution */
+    private static final Map<String, Sinks.Many<String>> THINKING_SINKS = new ConcurrentHashMap<>();
+
+    /** Per-session sinks for text token content, set by BabiService before graph execution */
+    private static final Map<String, Sinks.Many<String>> TEXT_SINKS = new ConcurrentHashMap<>();
+
+    /**
+     * Register a thinking sink for a session.
+     * Must be called before graph.stream() for that session.
+     */
+    public static void registerThinkingSink(String sessionId, Sinks.Many<String> sink) {
+        THINKING_SINKS.put(sessionId, sink);
+    }
+
+    /**
+     * Register a text token sink for a session.
+     * Must be called before graph.stream() for that session.
+     */
+    public static void registerTextSink(String sessionId, Sinks.Many<String> sink) {
+        TEXT_SINKS.put(sessionId, sink);
+    }
+
+    /**
+     * Unregister all sinks for a session.
+     */
+    public static void unregisterSinks(String sessionId) {
+        THINKING_SINKS.remove(sessionId);
+        TEXT_SINKS.remove(sessionId);
+    }
 
     private final String apiKey;
     private final String model;
@@ -366,6 +399,10 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
                 // Handle reasoning/thinking content
                 String reasoning = msg.getReasoningContent();
                 if (reasoning != null && !reasoning.isEmpty()) {
+                    // Route thinking content to all registered sinks
+                    for (Sinks.Many<String> sink : THINKING_SINKS.values()) {
+                        sink.tryEmitNext(reasoning);
+                    }
                     handler.onPartialThinking(new PartialThinking(reasoning));
                 }
 
@@ -377,6 +414,10 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
                 // Text-only streaming: emit tokens immediately
                 String content = extractText(msg.getContent());
                 if (!content.isEmpty()) {
+                    // Route text content to all registered sinks for true streaming
+                    for (Sinks.Many<String> sink : TEXT_SINKS.values()) {
+                        sink.tryEmitNext(content);
+                    }
                     handler.onPartialResponse(content);
                 }
             }
