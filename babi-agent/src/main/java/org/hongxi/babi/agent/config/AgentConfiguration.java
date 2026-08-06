@@ -15,6 +15,7 @@ import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
+import org.hongxi.babi.common.util.DashScopeEndpointUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -125,16 +126,22 @@ public class AgentConfiguration {
                 skillTool.getSkills().values(),
                 properties.chat().enableSearch());
 
+        // Build model with explicit endpoint routing for multimodal models
+        // (agentscope-java AUTO detection may not include recently released models)
+        String model = properties.chat().model();
+        DashScopeChatModel.Builder modelBuilder = DashScopeChatModel.builder()
+                .apiKey(properties.apiKey())
+                .modelName(model)
+                .stream(true)
+                .enableSearch(properties.chat().enableSearch());
+        if (DashScopeEndpointUtil.isMultimodalModel(model)) {
+            modelBuilder.endpointType(EndpointType.MULTIMODAL);
+        }
+
         return HarnessAgent.builder()
                 .name(AgentUtils.AGENT_NAME)
                 .sysPrompt(sysPrompt)
-                .model(DashScopeChatModel.builder()
-                        .apiKey(properties.apiKey())
-                        .modelName(properties.chat().model())
-                        .stream(true)
-                        .enableSearch(properties.chat().enableSearch())
-                        .endpointType(EndpointType.MULTIMODAL)
-                        .build())
+                .model(modelBuilder.build())
                 .fallbackModel(properties.chat().fallbackModel())
                 .toolkit(toolkit)
                 .workspace(workspacePath)

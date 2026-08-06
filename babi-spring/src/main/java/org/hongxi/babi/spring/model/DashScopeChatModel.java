@@ -17,6 +17,7 @@ import com.alibaba.dashscope.tools.ToolCallFunction;
 import com.alibaba.dashscope.tools.ToolFunction;
 import com.google.gson.JsonObject;
 import io.reactivex.Flowable;
+import org.hongxi.babi.common.util.DashScopeEndpointUtil;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
@@ -79,35 +80,10 @@ public class DashScopeChatModel implements ChatModel {
         this.temperature = temperature;
         this.topP = topP;
         this.enableSearch = enableSearch;
-        this.multimodal = isMultimodalModel(model);
+        this.multimodal = DashScopeEndpointUtil.isMultimodalModel(model);
         this.conversation = multimodal ? new MultiModalConversation() : null;
         this.generation = multimodal ? null : new Generation();
         log.info("DashScope model '{}' routed to {} API", model, multimodal ? "multimodal" : "text-generation");
-    }
-
-    /**
-     * Set of model name prefixes that require the multimodal API endpoint.
-     * Follows the same logic as agentscope-java's DashScopeModelProvider.
-     */
-    private static final java.util.Set<String> MULTIMODAL_MODELS = java.util.Set.of(
-            "qwen3.5", "qwen3.6", "qwen3.7", "qwen3.8",
-            "qvq", "kimi-k2.5", "kimi-k2.6");
-
-    /**
-     * Determine if a model name requires the multimodal API endpoint.
-     * Follows the same logic as agentscope-java's DashScopeModelProvider.isMultimodalModel().
-     */
-    static boolean isMultimodalModel(String modelName) {
-        if (modelName == null) {
-            return false;
-        }
-        String lower = modelName.toLowerCase();
-        for (String prefix : MULTIMODAL_MODELS) {
-            if (lower.contains(prefix)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

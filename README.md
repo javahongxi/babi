@@ -39,7 +39,7 @@
 
 ## 环境准备
 
-各模块均使用 Qwen 系列模型和 `dashscope-sdk-java`：
+各模块默认均使用 Qwen 系列模型：
 
 | 模块            | 模型        | SDK                                     | 环境变量            |
 |-----------------|-------------|-----------------------------------------|---------------------|
@@ -56,6 +56,9 @@
 ```bash
 # 阿里云百炼 API Key
 export DASHSCOPE_API_KEY=your_api_key
+
+# 可选 — 模型名称，默认 qwen3.8-max，可配置 DashScope 支持的其他模型，如 deepseek-v4-flash
+export BABI_DASHSCOPE_CHAT_MODEL=qwen3.8-max
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
 export GITHUB_TOKEN=your_github_token
