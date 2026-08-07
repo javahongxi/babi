@@ -15,7 +15,7 @@ import org.springframework.core.env.Environment;
  *
  * <p><b>Run:</b>
  * <pre>
- *   export DEEPSEEK_API_KEY=your_key
+ *   export DASHSCOPE_API_KEY=your_api_key
  *   mvn spring-boot:run -pl babi-spring
  * </pre>
  */
