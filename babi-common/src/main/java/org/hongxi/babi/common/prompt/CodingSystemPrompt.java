@@ -33,6 +33,27 @@ public final class CodingSystemPrompt {
     }
 
     /**
+     * Builds the system prompt with loaded skills, workspace info, search awareness, and task list.
+     *
+     * @param workspace      the absolute path of the current workspace
+     * @param skills         the collection of loaded skills (maybe empty)
+     * @param enableSearch   whether the LLM's built-in search is enabled (no web_search tool needed)
+     * @param taskListEnabled whether the todo_write tool is registered (adds task list guidance)
+     */
+    public static String build(String workspace, Collection<Skill> skills,
+                               boolean enableSearch, boolean taskListEnabled) {
+        String custom = loadCustomInstructions();
+        return String.join("\n\n",
+                workspaceSection(workspace),
+                coreRulesSection(enableSearch, skills),
+                skillsSection(skills),
+                guidelinesSection(enableSearch),
+                taskListEnabled ? taskListSection() : "",
+                custom
+        ).strip();
+    }
+
+    /**
      * Builds the system prompt with loaded skills, workspace info, and search awareness.
      *
      * @param workspace     the absolute path of the current workspace
@@ -40,14 +61,7 @@ public final class CodingSystemPrompt {
      * @param enableSearch  whether the LLM's built-in search is enabled (no web_search tool needed)
      */
     public static String build(String workspace, Collection<Skill> skills, boolean enableSearch) {
-        String custom = loadCustomInstructions();
-        return String.join("\n\n",
-                workspaceSection(workspace),
-                coreRulesSection(enableSearch, skills),
-                skillsSection(skills),
-                guidelinesSection(enableSearch),
-                custom
-        ).strip();
+        return build(workspace, skills, enableSearch, false);
     }
 
     /**
@@ -121,6 +135,15 @@ public final class CodingSystemPrompt {
             sb.append(" No skills installed. Use list_skills to check, or add .md files to ~/.agents/skills/.");
         }
         return sb.toString();
+    }
+
+    private static String taskListSection() {
+        return """
+                ## Task List
+                You have a `todo_write` tool that maintains a structured task list for this session.
+                Use it for multi-step work: capture the plan as todos, keep exactly one task
+                `in_progress`, and update the whole list as you make progress.
+                """;
     }
 
     private static String guidelinesSection(boolean enableSearch) {

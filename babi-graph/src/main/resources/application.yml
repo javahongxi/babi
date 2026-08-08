@@ -8,6 +8,7 @@ spring:
 babi:
   agent:
     workspace: ~/babi-workspace
+    enable-task-list: true
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:}
     chat:

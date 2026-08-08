@@ -8,6 +8,7 @@ import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.agent.Agent;
 import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
+import org.hongxi.babi.common.config.AgentProperties;
 import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
@@ -17,7 +18,6 @@ import org.hongxi.babi.graph.tool.*;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,14 +33,14 @@ import java.util.List;
  * Spring configuration that assembles the LangGraph4J Agent infrastructure.
  */
 @Configuration
-@EnableConfigurationProperties(DashScopeProperties.class)
+@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class})
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
     @Bean
-    public Path workspacePath(@Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        String resolved = AgentUtils.resolveWorkspace(workspace);
+    public Path workspacePath(AgentProperties agentProperties) {
+        String resolved = AgentUtils.resolveWorkspace(agentProperties.workspace());
         Path path = Path.of(resolved);
         try {
             Files.createDirectories(path);
@@ -79,6 +79,7 @@ public class AgentConfiguration {
             ToolEventBus toolEventBus,
             MemorySaver memorySaver,
             StreamingChatModel streamingChatModel,
+            AgentProperties agentProperties,
             DashScopeProperties properties) throws GraphStateException {
         // Create tool instances
         List<Object> tools = new LinkedList<>();
@@ -92,6 +93,9 @@ public class AgentConfiguration {
         tools.add(new ShellCommandTool(workspacePath.toString()));
         tools.add(new CodeSearchTool());
         tools.add(new GlobTool());
+        if (agentProperties.enableTaskList()) {
+            tools.add(new TodoWriteTool());
+        }
         // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());
@@ -109,7 +113,8 @@ public class AgentConfiguration {
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
                 skillTool.getSkills().values(),
-                properties.chat().enableSearch());
+                properties.chat().enableSearch(),
+                agentProperties.enableTaskList());
 
         // LangGraph4J does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.

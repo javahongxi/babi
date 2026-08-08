@@ -1,5 +1,6 @@
 package org.hongxi.babi.spring.config;
 
+import org.hongxi.babi.common.config.AgentProperties;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.spring.advisor.NotifyingToolCallingManager;
@@ -19,7 +20,6 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,14 +48,14 @@ import java.util.List;
  * replacing AgentScope's {@code ToolNotificationMiddleware}.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(DashScopeProperties.class)
+@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class})
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
 
     @Bean
-    public Path workspacePath(@Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        String resolved = AgentUtils.resolveWorkspace(workspace);
+    public Path workspacePath(AgentProperties agentProperties) {
+        String resolved = AgentUtils.resolveWorkspace(agentProperties.workspace());
         Path path = Path.of(resolved);
         try {
             Files.createDirectories(path);
@@ -111,13 +111,15 @@ public class AgentConfiguration {
             ChatMemory chatMemory,
             ToolCallingManager toolCallingManager,
             Path workspacePath,
+            AgentProperties agentProperties,
             DashScopeProperties properties) {
         SkillTool skillTool = new SkillTool(workspacePath);
 
         String sysPrompt = CodingSystemPrompt.build(
                 workspacePath.toString(),
                 skillTool.getSkills().values(),
-                properties.chat().enableSearch());
+                properties.chat().enableSearch(),
+                agentProperties.enableTaskList());
 
         // Spring AI does not inject runtime state like AgentScope does,
         // so append the current date/time to the system prompt explicitly.
@@ -134,6 +136,9 @@ public class AgentConfiguration {
         tools.add(new ShellCommandTool(workspacePath.toString()));
         tools.add(new CodeSearchTool());
         tools.add(new GlobTool());
+        if (agentProperties.enableTaskList()) {
+            tools.add(new TodoWriteTool());
+        }
         // When DashScope native search is enabled, skip the external WebSearchTool
         if (!properties.chat().enableSearch()) {
             tools.add(new WebSearchTool());

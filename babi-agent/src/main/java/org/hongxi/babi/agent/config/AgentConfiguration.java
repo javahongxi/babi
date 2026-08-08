@@ -9,6 +9,7 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.workspace.LocalFsMode;
 import org.hongxi.babi.agent.tool.*;
+import org.hongxi.babi.common.config.AgentProperties;
 import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
@@ -18,7 +19,6 @@ import org.hongxi.babi.common.util.AgentUtils;
 import org.hongxi.babi.common.util.DashScopeEndpointUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +41,7 @@ import java.nio.file.Paths;
  * <p>The controller only consumes these beans — it does not know how to build an agent.
  */
 @Configuration
-@EnableConfigurationProperties(DashScopeProperties.class)
+@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class})
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
@@ -50,8 +50,8 @@ public class AgentConfiguration {
      * Resolved workspace directory path, available for other beans that need it.
      */
     @Bean
-    public Path workspacePath(@Value("${babi.agent.workspace:~/babi-workspace}") String workspace) {
-        String resolved = AgentUtils.resolveWorkspace(workspace);
+    public Path workspacePath(AgentProperties agentProperties) {
+        String resolved = AgentUtils.resolveWorkspace(agentProperties.workspace());
         Path path = Path.of(resolved);
 
         try {
@@ -97,6 +97,7 @@ public class AgentConfiguration {
             Path workspacePath,
             AgentStateStore stateStore,
             ToolEventBus toolEventBus,
+            AgentProperties agentProperties,
             DashScopeProperties properties) {
 
         // Register babi-specific custom tools
@@ -153,7 +154,7 @@ public class AgentConfiguration {
                 .stateStore(stateStore)
                 .maxIters(50)
                 .maxRetries(2)              // Tool calls retry up to 2 times on failure
-                .enableTaskList()
+                .enableTaskList(agentProperties.enableTaskList())
                 .enablePlanMode()            // Plan mode: investigate first, then execute
                 .allowShellInPlanMode()      // Allow build/test commands in plan mode
                 .disableDynamicSkills()       // We use our own SkillTool for ~/.agents/skills/ and ~/.babi/skills/
