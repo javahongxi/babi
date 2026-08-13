@@ -42,7 +42,8 @@ import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import io.reactivex.Flowable;
-import org.hongxi.babi.common.util.DashScopeEndpointUtil;
+import org.hongxi.babi.common.model.ModelCatalog;
+import org.hongxi.babi.common.util.SessionContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +65,7 @@ import reactor.core.publisher.Sinks;
  * <p>Automatically routes to the appropriate DashScope API based on model type:
  * multimodal models use {@link MultiModalConversation} API, while text-only models
  * use {@link Generation} API. Model detection is handled by
- * {@link org.hongxi.babi.common.util.DashScopeEndpointUtil#isMultimodalModel(String)}.
+ * {@link org.hongxi.babi.common.model.ModelCatalog#isMultimodalModel(String)}.
  *
  * <p>Supports:
  * <ul>
@@ -112,28 +113,37 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     }
 
     private final String apiKey;
-    private final String model;
+    private final String defaultModel;
     private final Double temperature;
     private final Double topP;
     private final boolean enableSearch;
-    private final boolean multimodal;
-    private final MultiModalConversation conversation;  // for multimodal models
-    private final Generation generation;                 // for text-only models
+    // Both SDK clients pre-created (stateless lightweight objects); routing per-request
+    private final MultiModalConversation conversation = new MultiModalConversation();
+    private final Generation generation = new Generation();
 
     public DashScopeChatModel(String apiKey,
-                              String model,
+                              String defaultModel,
                               Double temperature,
                               Double topP,
                               boolean enableSearch) {
         this.apiKey = apiKey;
-        this.model = model;
+        this.defaultModel = defaultModel;
         this.temperature = temperature;
         this.topP = topP;
         this.enableSearch = enableSearch;
-        this.multimodal = DashScopeEndpointUtil.isMultimodalModel(model);
-        this.conversation = multimodal ? new MultiModalConversation() : null;
-        this.generation = multimodal ? null : new Generation();
-        log.info("DashScope model '{}' routed to {} API", model, multimodal ? "multimodal" : "text-generation");
+        log.info("DashScope model '{}' (default), per-request override enabled", defaultModel);
+    }
+
+    /**
+     * Resolve the model name for this request: check SessionContextHolder for a
+     * per-request model override (set by BabiService), otherwise use the default.
+     */
+    private String resolveModel() {
+        String override = SessionContextHolder.getModelOverride();
+        if (override != null && !override.isBlank()) {
+            return override;
+        }
+        return defaultModel;
     }
 
     @Override
@@ -162,7 +172,8 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        if (multimodal) {
+        String model = resolveModel();
+        if (ModelCatalog.isMultimodalModel(model)) {
             List<MultiModalMessage> messages = convertMultiModalMessages(chatRequest.messages());
             MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
                     buildMultiModalParam(messages, chatRequest, false);
@@ -191,7 +202,8 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        if (multimodal) {
+        String model = resolveModel();
+        if (ModelCatalog.isMultimodalModel(model)) {
             List<MultiModalMessage> messages = convertMultiModalMessages(chatRequest.messages());
             MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
                     buildMultiModalParam(messages, chatRequest, true);
@@ -225,6 +237,7 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     private MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> buildMultiModalParam(
             List<MultiModalMessage> messages, ChatRequest chatRequest, boolean streaming) {
 
+        String model = resolveModel();
         MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
                 MultiModalConversationParam.builder()
                         .apiKey(apiKey)
@@ -264,6 +277,7 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
     private GenerationParam.GenerationParamBuilder<?, ?> buildTextParam(
             List<Message> messages, ChatRequest chatRequest, boolean streaming) {
 
+        String model = resolveModel();
         GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
                 .apiKey(apiKey)
                 .model(model)

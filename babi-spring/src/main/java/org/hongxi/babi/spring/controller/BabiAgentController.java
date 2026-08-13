@@ -76,8 +76,9 @@ public class BabiAgentController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChatGet(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
-        return doStreamChat(message, sessionId);
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
+        return doStreamChat(message, sessionId, model);
     }
 
     /**
@@ -87,10 +88,11 @@ public class BabiAgentController {
     public Flux<ServerSentEvent<String>> streamChatPost(@RequestBody Map<String, String> body) {
         String message = body.getOrDefault("message", "");
         String sessionId = body.getOrDefault("sessionId", "default");
-        return doStreamChat(message, sessionId);
+        String model = body.get("model");
+        return doStreamChat(message, sessionId, model);
     }
 
-    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId) {
+    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId, String model) {
         log.debug(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
 
         if (!activeSessions.add(sessionId)) {
@@ -124,7 +126,7 @@ public class BabiAgentController {
         //    Extract text tokens and reasoning/thinking content from ChatResponse
         Flux<ServerSentEvent<String>> agentEvents = Flux.<ServerSentEvent<String>>create(sink -> {
             try {
-                Disposable disposable = babiService.streamChat(message, sessionId)
+                Disposable disposable = babiService.streamChat(message, sessionId, model)
                         .doOnNext(chatResponse -> {
                             if (sink.isCancelled()) return;
                             if (chatResponse == null || chatResponse.getResults() == null) return;
@@ -197,11 +199,12 @@ public class BabiAgentController {
     @GetMapping("/send")
     public Mono<String> sendChat(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
         if (!activeSessions.add(sessionId)) {
             return Mono.just("");
         }
-        return Mono.fromCallable(() -> babiService.chat(message, sessionId))
+        return Mono.fromCallable(() -> babiService.chat(message, sessionId, model))
                 .doFinally(sig -> activeSessions.remove(sessionId));
     }
 

@@ -7,6 +7,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -51,17 +52,21 @@ public class BabiService {
      *
      * @param userMessage the user's input message
      * @param sessionId   session identifier for conversation isolation
+     * @param model       optional model name override (null = use default)
      * @return Flux of ChatResponse objects
      */
-    public Flux<ChatResponse> streamChat(String userMessage, String sessionId) {
-        log.debug("streamChat: message='{}', sessionId='{}'", userMessage, sessionId);
+    public Flux<ChatResponse> streamChat(String userMessage, String sessionId, String model) {
+        log.debug("streamChat: message='{}', sessionId='{}', model='{}'", userMessage, sessionId, model);
         SessionContextHolder.setSessionId(sessionId);
         // Track current thread for interrupt support
         activeThreads.put(sessionId, Thread.currentThread());
-        return chatClient.prompt()
+        var promptSpec = chatClient.prompt()
                 .user(userMessage)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
-                .stream()
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId));
+        if (model != null && !model.isBlank()) {
+            promptSpec.options(ToolCallingChatOptions.builder().model(model));
+        }
+        return promptSpec.stream()
                 .chatResponse()
                 .contextWrite(ctx -> ctx.put(SESSION_ID_CTX_KEY, sessionId))
                 .doFinally(sig -> {
@@ -111,16 +116,20 @@ public class BabiService {
      *
      * @param userMessage the user's input message
      * @param sessionId   session identifier for conversation isolation
+     * @param model       optional model name override (null = use default)
      * @return full response text
      */
-    public String chat(String userMessage, String sessionId) {
-        log.info("chat: message='{}', sessionId='{}'", userMessage, sessionId);
+    public String chat(String userMessage, String sessionId, String model) {
+        log.info("chat: message='{}', sessionId='{}', model='{}'", userMessage, sessionId, model);
         SessionContextHolder.setSessionId(sessionId);
         try {
-            return chatClient.prompt()
+            var promptSpec = chatClient.prompt()
                     .user(userMessage)
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId))
-                    .call()
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sessionId));
+            if (model != null && !model.isBlank()) {
+                promptSpec.options(ToolCallingChatOptions.builder().model(model));
+            }
+            return promptSpec.call()
                     .content();
         } finally {
             SessionContextHolder.clear();

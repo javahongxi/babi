@@ -95,8 +95,9 @@ public class BabiAgentController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChatGet(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
-        return doStreamChat(message, sessionId);
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
+        return doStreamChat(message, sessionId, model);
     }
 
     /**
@@ -106,12 +107,13 @@ public class BabiAgentController {
     public Flux<ServerSentEvent<String>> streamChatPost(@RequestBody Map<String, String> body) {
         String message = body.getOrDefault("message", "");
         String sessionId = body.getOrDefault("sessionId", "default");
-        return doStreamChat(message, sessionId);
+        String model = body.get("model");
+        return doStreamChat(message, sessionId, model);
     }
 
-    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId) {
+    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId, String model) {
 
-        log.debug(">>> streamChat request: message='{}', sessionId='{}', activeSessions={}", message, sessionId, activeSessions);
+        log.debug(">>> streamChat request: message='{}', sessionId='{}', model='{}', activeSessions={}", message, sessionId, model, activeSessions);
 
         // Deduplication: reject if this session already has an in-flight request
         if (!activeSessions.add(sessionId)) {
@@ -120,9 +122,12 @@ public class BabiAgentController {
         }
         log.debug(">>> Request accepted, starting agent for session='{}'", sessionId);
 
-        RuntimeContext ctx = RuntimeContext.builder()
-                .sessionId(sessionId)
-                .build();
+        RuntimeContext.Builder ctxBuilder = RuntimeContext.builder()
+                .sessionId(sessionId);
+        if (model != null && !model.isBlank()) {
+            ctxBuilder.put("modelOverride", model);
+        }
+        RuntimeContext ctx = ctxBuilder.build();
 
         // 1. 工具事件流 — 由 ToolNotificationMiddleware 发布到 ToolEventBus
         Flux<ServerSentEvent<String>> toolEvents = Flux.defer(() ->
@@ -208,15 +213,19 @@ public class BabiAgentController {
     @GetMapping("/send")
     public Mono<String> sendChat(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
         // Deduplication guard: reject if session already has an in-flight request
         if (!activeSessions.add(sessionId)) {
             log.debug("Rejecting duplicate send for session={}", sessionId);
             return Mono.just("");
         }
-        RuntimeContext ctx = RuntimeContext.builder()
-                .sessionId(sessionId)
-                .build();
+        RuntimeContext.Builder ctxBuilder = RuntimeContext.builder()
+                .sessionId(sessionId);
+        if (model != null && !model.isBlank()) {
+            ctxBuilder.put("modelOverride", model);
+        }
+        RuntimeContext ctx = ctxBuilder.build();
         Msg userMsg = new UserMessage(message);
         return agent.call(userMsg, ctx)
                 .map(reply -> reply.getTextContent() != null ? reply.getTextContent() : "")

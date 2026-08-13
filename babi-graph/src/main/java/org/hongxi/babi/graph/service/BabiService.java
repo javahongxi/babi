@@ -47,7 +47,7 @@ public class BabiService {
      * @return Flux of SSE event data maps
      */
     @SuppressWarnings("unchecked")
-    public Flux<Map<String, Object>> streamChat(String message, String sessionId) {
+    public Flux<Map<String, Object>> streamChat(String message, String sessionId, String model) {
         if (!activeSessions.add(sessionId)) {
             return Flux.just(Map.of("type", "done", "duplicate", true));
         }
@@ -70,8 +70,11 @@ public class BabiService {
 
         new Thread(() -> {
             try {
-                // Set ThreadLocal for tool event emission
+                // Set ThreadLocal for tool event emission and model override
                 SessionContextHolder.setSessionId(sessionId);
+                if (model != null && !model.isBlank()) {
+                    SessionContextHolder.setModelOverride(model);
+                }
 
                 // Clear stale FINAL_RESPONSE from previous turn (LangGraph4J bug:
                 // executeTool routes based on state.finalResponse(), which persists

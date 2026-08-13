@@ -54,8 +54,9 @@ public class BabiAgentController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> streamChatGet(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
-        return doStreamChat(message, sessionId);
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
+        return doStreamChat(message, sessionId, model);
     }
 
     /**
@@ -65,10 +66,11 @@ public class BabiAgentController {
     public Flux<ServerSentEvent<String>> streamChatPost(@RequestBody Map<String, String> body) {
         String message = body.getOrDefault("message", "");
         String sessionId = body.getOrDefault("sessionId", "default");
-        return doStreamChat(message, sessionId);
+        String model = body.get("model");
+        return doStreamChat(message, sessionId, model);
     }
 
-    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId) {
+    private Flux<ServerSentEvent<String>> doStreamChat(String message, String sessionId, String model) {
 
         log.debug(">>> streamChat: message='{}', sessionId='{}'", message, sessionId);
 
@@ -95,7 +97,7 @@ public class BabiAgentController {
         );
 
         // 2. Agent streaming events from BabiService
-        Flux<ServerSentEvent<String>> agentEvents = babiService.streamChat(message, sessionId)
+        Flux<ServerSentEvent<String>> agentEvents = babiService.streamChat(message, sessionId, model)
                 .map(data -> {
                     String type = (String) data.getOrDefault("type", "token");
                     return switch (type) {
@@ -133,9 +135,10 @@ public class BabiAgentController {
     @GetMapping("/send")
     public Mono<String> sendChat(
             @RequestParam String message,
-            @RequestParam(defaultValue = "default") String sessionId) {
+            @RequestParam(defaultValue = "default") String sessionId,
+            @RequestParam(required = false) String model) {
         // Collect all tokens into a single string
-        return babiService.streamChat(message, sessionId)
+        return babiService.streamChat(message, sessionId, model)
                 .filter(data -> "token".equals(data.get("type")))
                 .map(data -> (String) data.getOrDefault("data", ""))
                 .reduce(String::concat);

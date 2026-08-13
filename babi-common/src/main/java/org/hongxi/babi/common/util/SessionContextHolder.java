@@ -13,6 +13,7 @@ package org.hongxi.babi.common.util;
 public final class SessionContextHolder {
 
     private static final ThreadLocal<String> SESSION_ID = new ThreadLocal<>();
+    private static final ThreadLocal<String> MODEL_OVERRIDE = new ThreadLocal<>();
 
     public static void setSessionId(String sessionId) {
         SESSION_ID.set(sessionId);
@@ -22,8 +23,23 @@ public final class SessionContextHolder {
         return SESSION_ID.get();
     }
 
+    /**
+     * Sets the per-request model override (used by the graph module to pass
+     * the user-selected model name to DashScopeChatModel via ThreadLocal,
+     * since LangGraph4J's AgentExecutor does not support per-request
+     * ChatRequestParameters injection from graph state).
+     */
+    public static void setModelOverride(String model) {
+        MODEL_OVERRIDE.set(model);
+    }
+
+    public static String getModelOverride() {
+        return MODEL_OVERRIDE.get();
+    }
+
     public static void clear() {
         SESSION_ID.remove();
+        MODEL_OVERRIDE.remove();
     }
 
     private SessionContextHolder() {}

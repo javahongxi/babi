@@ -13,10 +13,11 @@ import org.hongxi.babi.common.config.AgentProperties;
 import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
+import org.hongxi.babi.agent.middleware.ModelSwitchingMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
+import org.hongxi.babi.common.model.ModelCatalog;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
 import org.hongxi.babi.common.util.AgentUtils;
-import org.hongxi.babi.common.util.DashScopeEndpointUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -135,7 +136,7 @@ public class AgentConfiguration {
                 .modelName(model)
                 .stream(true)
                 .enableSearch(properties.chat().enableSearch());
-        if (DashScopeEndpointUtil.isMultimodalModel(model)) {
+        if (ModelCatalog.isMultimodalModel(model)) {
             modelBuilder.endpointType(EndpointType.MULTIMODAL);
         }
 
@@ -165,6 +166,9 @@ public class AgentConfiguration {
                 .enableAgentTracingLog(false)  // Disable AgentTraceMiddleware for performance
                 .middleware(new ContextTruncateMiddleware(30))
                 .middleware(new ToolNotificationMiddleware(toolEventBus))
+                .middleware(new ModelSwitchingMiddleware(
+                        properties.apiKey(),
+                        properties.chat().enableSearch()))
                 .build();
     }
 
