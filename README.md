@@ -36,6 +36,7 @@
 - **会话中断** — 用户可随时终止 LLM 生成，真正停止 token 输出以节省资源消耗
 - **思考过程展示** — 实时展示 LLM 推理过程（reasoning），以可折叠区块可视化呈现
 - **图片生成** — 优先使用 Skills 扩展，找不到技能时使用内置的 generate_image 工具
+- **模型选择** — 前端下拉框动态切换模型，支持 Qwen、DeepSeek、GLM 等系列模型
 
 ## 环境准备
 
@@ -56,9 +57,6 @@
 ```bash
 # 阿里云百炼 API Key
 export DASHSCOPE_API_KEY=your_api_key
-
-# 可选 — 模型名称，默认 qwen3.7-plus，可配置 DashScope 支持的其他模型，如 deepseek-v4-flash
-export BABI_DASHSCOPE_CHAT_MODEL=qwen3.7-plus
 
 # 可选 — GitHub API 令牌（用于 GitHub 相关功能，如查询 pinned 仓库等）
 export GITHUB_TOKEN=your_github_token
