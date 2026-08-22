@@ -18,6 +18,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.model.tool.DefaultToolCallingManager;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -48,7 +49,7 @@ import java.util.List;
  * replacing AgentScope's {@code ToolNotificationMiddleware}.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class})
+@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class, ToolCallLimitsProperties.class})
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
@@ -94,15 +95,31 @@ public class AgentConfiguration {
     /**
      * Custom {@link ToolCallingManager} that wraps the default implementation
      * to publish tool-call events to the {@link ToolEventBus} before execution.
+     * Tool call limits are applied here as well, since registering this bean
+     * makes Spring AI's {@code spring.ai.tools.limits.*} auto-configuration
+     * back off ({@code @ConditionalOnMissingBean}).
      */
     @Bean
     public ToolCallingManager toolCallingManager(
             ToolCallbackResolver toolCallbackResolver,
-            ToolEventBus toolEventBus) {
-        ToolCallingManager defaultManager = ToolCallingManager.builder()
+            ToolEventBus toolEventBus,
+            ToolCallLimitsProperties limits) {
+        DefaultToolCallingManager.Builder builder = ToolCallingManager.builder()
                 .toolCallbackResolver(toolCallbackResolver)
-                .build();
-        return new NotifyingToolCallingManager(defaultManager, toolEventBus);
+                .onLimitExceeded(limits.onLimitExceeded());
+        if (limits.maxCallsPerTool() == ToolCallLimitsProperties.UNLIMITED) {
+            builder.unlimitedCallsPerTool();
+        } else {
+            builder.maxCallsPerTool(limits.maxCallsPerTool());
+        }
+        if (limits.maxTotalToolCalls() == ToolCallLimitsProperties.UNLIMITED) {
+            builder.unlimitedTotalToolCalls();
+        } else {
+            builder.maxTotalToolCalls(limits.maxTotalToolCalls());
+        }
+        log.info("ToolCallingManager initialized: maxCallsPerTool={}, maxTotalToolCalls={}, onLimitExceeded={}",
+                limits.maxCallsPerTool(), limits.maxTotalToolCalls(), limits.onLimitExceeded());
+        return new NotifyingToolCallingManager(builder.build(), toolEventBus);
     }
 
     @Bean

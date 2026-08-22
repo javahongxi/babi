@@ -9,6 +9,10 @@ babi:
   agent:
     workspace: ~/babi-workspace
     enable-task-list: true
+    tool-limits:
+      max-calls-per-tool: 40        # 单个工具每轮最大调用次数，-1 不限制
+      max-total-tool-calls: 150     # 每轮所有工具调用总次数上限，-1 不限制
+      on-limit-exceeded: THROW      # THROW 或 RETURN_ERROR_RESPONSE
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:}
     chat:
