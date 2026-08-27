@@ -19,6 +19,7 @@ public final class ModelCatalog {
     private static final List<ModelInfo> MODELS = List.of(
             new ModelInfo("qwen3.7-plus", "Qwen3.7 Plus", true, "多模态，性价比高"),
             new ModelInfo("qwen3.8-max", "Qwen3.8 Max", true, "多模态，旗舰模型"),
+            new ModelInfo("qwen3.8-flash", "Qwen3.8 Flash", true, "多模态，能力、延迟与成本均衡"),
             new ModelInfo("qwen3.7-max", "Qwen3.7 Max", false, "擅长代码编写，处理复杂任务"),
             new ModelInfo("qwen3.7-flash", "Qwen3.7 Flash", true, "适用于简单任务，响应速度快"),
             new ModelInfo("deepseek-v4-pro", "DeepSeek V4 Pro", false, "推理性能全面领先"),
