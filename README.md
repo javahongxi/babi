@@ -1,6 +1,6 @@
 # Babi Agent ♻️
 
-一个动手学 AI Agent 的探索项目：拿同一个 Coding Agent 当靶子，在多种 Java / Python 框架里各实现一遍，横向对照 ReAct、工具编排、Skills 扩展的落地差异。Coding 只是演示领域，读懂 Agent 怎么从零跑起来才是目的。
+一个动手学 AI Agent 的探索项目：拿同一个 Coding Agent 当靶子，在多种 Java / Python 框架里各实现一遍，横向对照 ReAct 自主循环、各框架的编排方式与 Skills 扩展的落地差异。Coding 只是演示领域，读懂 Agent 怎么从零跑起来才是目的。
 
 同一套 Agent 能力，Java 侧用三种框架各实现一遍：
 
