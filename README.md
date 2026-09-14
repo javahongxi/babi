@@ -1,8 +1,8 @@
 # Babi Agent ♻️
 
-面向开发者的 AI Coding Agent，基于 ReAct 模式提供代码分析、构建、调试等开发辅助能力。
+一个动手学 AI Agent 的探索项目：拿同一个 Coding Agent 当靶子，在多种 Java / Python 框架里各实现一遍，横向对照 ReAct、工具编排、Skills 扩展的落地差异。Coding 只是演示领域，读懂 Agent 怎么从零跑起来才是目的。
 
-本项目包含三个 Java 实现版本：
+同一套 Agent 能力，Java 侧用三种框架各实现一遍：
 
 | 模块                 | 技术栈                                    | 定位                           |
 |----------------------|-------------------------------------------|--------------------------------|
@@ -10,14 +10,12 @@
 | **babi-graph**       | LangGraph4j 1.8.20 + Spring Boot 4.1.1    | 图编排实现，生态主流，灵活可控 |
 | **babi-spring**      | Spring AI 2.0.1 + Spring Boot 4.1.1       | 轻量实现，适合深度定制         |
 
-另有 Python 实现版本：
+Python 侧另有两个版本，凑成跨语言、跨框架的对照样本：
 
 | 项目                           | 技术栈                | 定位                       |
 |--------------------------------|-----------------------|----------------------------|
 | **javahongxi/babi-langgraph**  | LangGraph + LangChain | 主力打磨版本，紧跟 AI 生态 |
 | **javahongxi/babi-agentscope** | AgentScope Python     | 与 Java 版互为跨语言参照   |
-
-> 各版本共享相似的工具能力与交互体验，可根据技术偏好选择使用。
 
 ## 特性
 
