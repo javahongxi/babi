@@ -1,5 +1,6 @@
 package org.hongxi.babi.spring.advisor;
 
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -45,12 +46,12 @@ public class ToolCallObservationAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     @Override
-    public String getName() {
+    public @NonNull String getName() {
         return "ToolCallObservationAdvisor";
     }
 
     @Override
-    public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
+    public @NonNull ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         // 根据消息历史推断当前迭代轮次
         // 每轮工具调用会增加 AssistantMessage(toolCalls) + ToolResponseMessage，共 2 条
         // 初始状态: SYSTEM + USER = 2 条 → 第 1 轮
@@ -77,7 +78,7 @@ public class ToolCallObservationAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     @Override
-    public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
+    public @NonNull Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
         List<Message> messages = request.prompt().getInstructions();
         long iteration = computeIteration(messages);
 

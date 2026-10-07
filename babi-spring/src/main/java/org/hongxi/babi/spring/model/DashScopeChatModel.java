@@ -18,6 +18,7 @@ import com.alibaba.dashscope.tools.ToolFunction;
 import com.google.gson.JsonObject;
 import io.reactivex.Flowable;
 import org.hongxi.babi.common.model.ModelCatalog;
+import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
@@ -93,7 +94,7 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     @Override
-    public ChatResponse call(Prompt prompt) {
+    public @NonNull ChatResponse call(Prompt prompt) {
         String model = resolveModel(prompt.getOptions());
         if (ModelCatalog.isMultimodalModel(model)) {
             List<MultiModalMessage> messages = convertMultiModalMessages(prompt.getInstructions());
@@ -119,7 +120,7 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     @Override
-    public Flux<ChatResponse> stream(Prompt prompt) {
+    public @NonNull Flux<ChatResponse> stream(Prompt prompt) {
         String model = resolveModel(prompt.getOptions());
         if (ModelCatalog.isMultimodalModel(model)) {
             List<MultiModalMessage> messages = convertMultiModalMessages(prompt.getInstructions());
@@ -145,7 +146,7 @@ public class DashScopeChatModel implements ChatModel {
     }
 
     @Override
-    public ChatOptions getOptions() {
+    public @NonNull ChatOptions getOptions() {
         return ToolCallingChatOptions.builder()
                 .model(defaultModel)
                 .temperature(temperature)
@@ -167,7 +168,7 @@ public class DashScopeChatModel implements ChatModel {
             toolOptions.getToolCallbacks().forEach(cb -> {
                 String schemaJson = cb.getToolDefinition().inputSchema();
                 JsonObject params = new JsonObject();
-                if (schemaJson != null && !schemaJson.isEmpty()) {
+                if (!schemaJson.isEmpty()) {
                     params = new com.google.gson.Gson().fromJson(schemaJson, JsonObject.class);
                 }
                 FunctionDefinition fd = FunctionDefinition.builder()
@@ -199,7 +200,8 @@ public class DashScopeChatModel implements ChatModel {
      * <p>For MultiModalMessage, text content is represented as a list of maps:
      * {@code [{"text": "actual content"}]}.
      */
-    private List<MultiModalMessage> convertMultiModalMessages(List<org.springframework.ai.chat.messages.Message> springMessages) {
+    private List<MultiModalMessage> convertMultiModalMessages(
+            List<org.springframework.ai.chat.messages.Message> springMessages) {
         List<MultiModalMessage> result = new ArrayList<>();
         for (org.springframework.ai.chat.messages.Message springMsg : springMessages) {
             if (springMsg instanceof SystemMessage sysMsg) {
@@ -216,7 +218,7 @@ public class DashScopeChatModel implements ChatModel {
                 MultiModalMessage.MultiModalMessageBuilder<?, ?> msgBuilder = MultiModalMessage.builder()
                         .role(Role.ASSISTANT.getValue())
                         .content(textContent(assistantMsg.getText()));
-                if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
+                if (!assistantMsg.getToolCalls().isEmpty()) {
                     List<ToolCallBase> toolCalls = new ArrayList<>();
                     for (AssistantMessage.ToolCall tc : assistantMsg.getToolCalls()) {
                         ToolCallFunction tcf = new ToolCallFunction();
@@ -249,7 +251,8 @@ public class DashScopeChatModel implements ChatModel {
     // Message conversion: Spring AI → DashScope Message (text-only)
     // -------------------------------------------------------------------------
 
-    private List<Message> convertTextMessages(List<org.springframework.ai.chat.messages.Message> springMessages) {
+    private List<Message> convertTextMessages(
+            List<org.springframework.ai.chat.messages.Message> springMessages) {
         List<Message> result = new ArrayList<>();
         for (org.springframework.ai.chat.messages.Message springMsg : springMessages) {
             if (springMsg instanceof SystemMessage sysMsg) {
@@ -266,7 +269,7 @@ public class DashScopeChatModel implements ChatModel {
                 Message.MessageBuilder<?, ?> msgBuilder = Message.builder()
                         .role(Role.ASSISTANT.getValue())
                         .content(assistantMsg.getText());
-                if (assistantMsg.getToolCalls() != null && !assistantMsg.getToolCalls().isEmpty()) {
+                if (!assistantMsg.getToolCalls().isEmpty()) {
                     List<ToolCallBase> toolCalls = new ArrayList<>();
                     for (AssistantMessage.ToolCall tc : assistantMsg.getToolCalls()) {
                         ToolCallFunction tcf = new ToolCallFunction();
@@ -368,14 +371,17 @@ public class DashScopeChatModel implements ChatModel {
     /**
      * Apply Spring AI chat options to the multimodal param builder.
      */
-    private void applyMultiModalOptions(MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder, ChatOptions options) {
-        if (options instanceof ToolCallingChatOptions toolOptions && toolOptions.getToolCallbacks() != null
+    private void applyMultiModalOptions(
+            MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder,
+            ChatOptions options) {
+        if (options instanceof ToolCallingChatOptions toolOptions
+                && toolOptions.getToolCallbacks() != null
                 && !toolOptions.getToolCallbacks().isEmpty()) {
             List<com.alibaba.dashscope.tools.ToolBase> tools = new ArrayList<>();
             toolOptions.getToolCallbacks().forEach(cb -> {
                 String schemaJson = cb.getToolDefinition().inputSchema();
                 JsonObject params = new JsonObject();
-                if (schemaJson != null && !schemaJson.isEmpty()) {
+                if (!schemaJson.isEmpty()) {
                     com.google.gson.Gson gson = new com.google.gson.Gson();
                     params = gson.fromJson(schemaJson, JsonObject.class);
                 }
@@ -547,9 +553,7 @@ public class DashScopeChatModel implements ChatModel {
                         metaBuilder.finishReason(lastFinishReason);
                     }
 
-                    ChatResponseMetadata responseMetadata = (lastResult != null)
-                            ? buildMultiModalResponseMetadata(lastResult)
-                            : ChatResponseMetadata.builder().build();
+                    ChatResponseMetadata responseMetadata = buildMultiModalResponseMetadata(lastResult);
 
                     sink.next(new ChatResponse(
                             List.of(new org.springframework.ai.chat.model.Generation(
@@ -563,9 +567,7 @@ public class DashScopeChatModel implements ChatModel {
                     ChatGenerationMetadata metadata = ChatGenerationMetadata.builder()
                             .finishReason(lastFinishReason)
                             .build();
-                    ChatResponseMetadata responseMetadata = (lastResult != null)
-                            ? buildMultiModalResponseMetadata(lastResult)
-                            : ChatResponseMetadata.builder().build();
+                    ChatResponseMetadata responseMetadata = buildMultiModalResponseMetadata(lastResult);
                     sink.next(new ChatResponse(
                             List.of(new org.springframework.ai.chat.model.Generation(
                                     assistantMessage, metadata)),
@@ -732,9 +734,7 @@ public class DashScopeChatModel implements ChatModel {
                         metaBuilder.finishReason(lastFinishReason);
                     }
 
-                    ChatResponseMetadata responseMetadata = (lastResult != null)
-                            ? buildTextResponseMetadata(lastResult)
-                            : ChatResponseMetadata.builder().build();
+                    ChatResponseMetadata responseMetadata = buildTextResponseMetadata(lastResult);
 
                     sink.next(new ChatResponse(
                             List.of(new org.springframework.ai.chat.model.Generation(
@@ -747,9 +747,7 @@ public class DashScopeChatModel implements ChatModel {
                     ChatGenerationMetadata metadata = ChatGenerationMetadata.builder()
                             .finishReason(lastFinishReason)
                             .build();
-                    ChatResponseMetadata responseMetadata = (lastResult != null)
-                            ? buildTextResponseMetadata(lastResult)
-                            : ChatResponseMetadata.builder().build();
+                    ChatResponseMetadata responseMetadata = buildTextResponseMetadata(lastResult);
                     sink.next(new ChatResponse(
                             List.of(new org.springframework.ai.chat.model.Generation(
                                     assistantMessage, metadata)),
@@ -825,17 +823,17 @@ public class DashScopeChatModel implements ChatModel {
             implements org.springframework.ai.chat.metadata.Usage {
 
         @Override
-        public Integer getPromptTokens() {
+        public @NonNull Integer getPromptTokens() {
             return promptTokens != null ? promptTokens : 0;
         }
 
         @Override
-        public Integer getCompletionTokens() {
+        public @NonNull Integer getCompletionTokens() {
             return completionTokens != null ? completionTokens : 0;
         }
 
         @Override
-        public Integer getTotalTokens() {
+        public @NonNull Integer getTotalTokens() {
             return totalTokens != null ? totalTokens : 0;
         }
 

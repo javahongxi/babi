@@ -93,14 +93,12 @@ public class ContextTruncateMiddleware implements MiddlewareBase {
             return new ArrayList<>(messages.subList(total - maxMessages, total));
         }
 
-        List<Msg> window = new ArrayList<>(messages.subList(start, total));
-
         // Check if the last ASSISTANT message in the window has pending tool calls
         // whose results are outside the window — if so, trim that assistant message's
         // tool calls to avoid sending incomplete pairs.
         // (In practice the ReAct loop ensures tool results follow immediately,
         //  so this mainly guards against edge cases at the boundary.)
 
-        return window;
+        return new ArrayList<>(messages.subList(start, total));
     }
 }

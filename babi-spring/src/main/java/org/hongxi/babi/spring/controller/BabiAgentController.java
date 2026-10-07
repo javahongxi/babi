@@ -6,7 +6,6 @@ import org.hongxi.babi.spring.service.BabiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -129,13 +128,10 @@ public class BabiAgentController {
                 Disposable disposable = babiService.streamChat(message, sessionId, model)
                         .doOnNext(chatResponse -> {
                             if (sink.isCancelled()) return;
-                            if (chatResponse == null || chatResponse.getResults() == null) return;
                             for (Generation gen : chatResponse.getResults()) {
                                 AssistantMessage am = gen.getOutput();
-                                if (am == null) continue;
                                 // Extract reasoning content from metadata
-                                Object reasoning = am.getMetadata() != null
-                                        ? am.getMetadata().get("reasoningContent") : null;
+                                Object reasoning = am.getMetadata().get("reasoningContent");
                                 if (reasoning instanceof String r && !r.isEmpty()) {
                                     sink.next(sse("reasoning", Map.of("type", "reasoning", "data", r)));
                                 }

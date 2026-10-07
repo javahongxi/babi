@@ -3,6 +3,7 @@ package org.hongxi.babi.graph.service;
 import dev.langchain4j.data.message.UserMessage;
 import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.CompiledGraph;
+import org.bsc.langgraph4j.GraphInput;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.hongxi.babi.common.util.SessionContextHolder;
@@ -46,7 +47,6 @@ public class BabiService {
      * @param sessionId session identifier
      * @return Flux of SSE event data maps
      */
-    @SuppressWarnings("unchecked")
     public Flux<Map<String, Object>> streamChat(String message, String sessionId, String model) {
         if (!activeSessions.add(sessionId)) {
             return Flux.just(Map.of("type", "done", "duplicate", true));
@@ -86,7 +86,7 @@ public class BabiService {
                         .threadId(sessionId)
                         .build();
 
-                var result = graph.stream(input, config);
+                var result = graph.stream(GraphInput.args(input), config);
                 // Save generator reference for interrupt support
                 activeGenerators.put(sessionId, result);
 

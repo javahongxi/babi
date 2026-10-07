@@ -109,10 +109,8 @@ public final class SkillLoader {
     private static void loadSingleFile(Path file, Map<String, Skill> target) {
         try {
             Skill skill = parseSkillFile(file);
-            if (skill != null) {
-                target.put(skill.name(), skill);
-                log.debug("Loaded skill '{}' from {}", skill.name(), file);
-            }
+            target.put(skill.name(), skill);
+            log.debug("Loaded skill '{}' from {}", skill.name(), file);
         } catch (Exception e) {
             log.warn("Failed to load skill from {}: {}", file, e.getMessage());
         }
@@ -154,10 +152,9 @@ public final class SkillLoader {
         String fileName = file.getFileName().toString().replace(".md", "");
 
         // For SKILL.md inside a directory, use parent dir name as fallback
-        String defaultName = "SKILL".equalsIgnoreCase(fileName)
+        String name = "SKILL".equalsIgnoreCase(fileName)
                 ? file.getParent().getFileName().toString()
                 : fileName;
-        String name = defaultName;
         String description = "";
         String body = content;
 

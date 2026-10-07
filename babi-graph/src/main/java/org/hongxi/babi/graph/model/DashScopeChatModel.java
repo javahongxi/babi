@@ -187,7 +187,7 @@ public class DashScopeChatModel implements StreamingChatModel {
                     buildMultiModalParam(messages, chatRequest, true);
             try {
                 Flowable<MultiModalConversationResult> flowable = conversation.streamCall(builder.build());
-                handleMultiModalStreaming(flowable, chatRequest, handler);
+                handleMultiModalStreaming(flowable, handler);
             } catch (Exception e) {
                 handler.onError(new RuntimeException("DashScope streaming call failed", e));
             }
@@ -197,7 +197,7 @@ public class DashScopeChatModel implements StreamingChatModel {
                     buildTextParam(messages, chatRequest, true);
             try {
                 Flowable<GenerationResult> flowable = generation.streamCall(builder.build());
-                handleTextStreaming(flowable, chatRequest, handler);
+                handleTextStreaming(flowable, handler);
             } catch (Exception e) {
                 handler.onError(new RuntimeException("DashScope streaming call failed", e));
             }
@@ -534,12 +534,10 @@ public class DashScopeChatModel implements StreamingChatModel {
     // =========================================================================
 
     private void handleMultiModalStreaming(Flowable<MultiModalConversationResult> flowable,
-                                           ChatRequest chatRequest,
                                            StreamingChatResponseHandler handler) {
         // Accumulator for tool call chunks in incremental output mode
         Map<Integer, AccumulatedToolCall> toolCallAccumulator = new HashMap<>();
         boolean hasToolCalls = false;
-        MultiModalConversationResult lastResult = null;
         String lastFinishReason = null;
 
         try {
@@ -551,7 +549,6 @@ public class DashScopeChatModel implements StreamingChatModel {
 
                 MultiModalConversationOutput.Choice choice = result.getOutput().getChoices().get(0);
                 MultiModalMessage msg = choice.getMessage();
-                lastResult = result;
 
                 String fr = choice.getFinishReason();
                 if (fr != null && !fr.isEmpty()) {
@@ -617,7 +614,6 @@ public class DashScopeChatModel implements StreamingChatModel {
             }
         } catch (Exception e) {
             handler.onError(e);
-            return;
         }
     }
 
@@ -626,11 +622,9 @@ public class DashScopeChatModel implements StreamingChatModel {
     // =========================================================================
 
     private void handleTextStreaming(Flowable<GenerationResult> flowable,
-                                     ChatRequest chatRequest,
                                      StreamingChatResponseHandler handler) {
         Map<Integer, AccumulatedToolCall> toolCallAccumulator = new HashMap<>();
         boolean hasToolCalls = false;
-        GenerationResult lastResult = null;
         String lastFinishReason = null;
 
         try {
@@ -642,7 +636,6 @@ public class DashScopeChatModel implements StreamingChatModel {
 
                 GenerationOutput.Choice choice = result.getOutput().getChoices().get(0);
                 Message msg = choice.getMessage();
-                lastResult = result;
 
                 String fr = choice.getFinishReason();
                 if (fr != null && !fr.isEmpty()) {
@@ -705,7 +698,6 @@ public class DashScopeChatModel implements StreamingChatModel {
             }
         } catch (Exception e) {
             handler.onError(e);
-            return;
         }
     }
 

@@ -2,6 +2,7 @@ package org.hongxi.babi.spring.advisor;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -48,12 +49,12 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
     }
 
     @Override
-    public List<ToolDefinition> resolveToolDefinitions(ToolCallingChatOptions chatOptions) {
+    public @NonNull List<ToolDefinition> resolveToolDefinitions(@NonNull ToolCallingChatOptions chatOptions) {
         return delegate.resolveToolDefinitions(chatOptions);
     }
 
     @Override
-    public ToolExecutionResult executeToolCalls(Prompt prompt, ChatResponse chatResponse) {
+    public @NonNull ToolExecutionResult executeToolCalls(@NonNull Prompt prompt, @NonNull ChatResponse chatResponse) {
         publishToolCallEvents(chatResponse);
         try {
             ToolExecutionResult result = delegate.executeToolCalls(prompt, chatResponse);
@@ -77,7 +78,7 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
         // 1. Try Reactor Context (set by ToolCallingAdvisor on the tool-execution thread)
         try {
             ContextView ctx = ToolCallReactiveContextHolder.getContext();
-            if (ctx != null && ctx.hasKey(BabiService.SESSION_ID_CTX_KEY)) {
+            if (ctx.hasKey(BabiService.SESSION_ID_CTX_KEY)) {
                 return ctx.get(BabiService.SESSION_ID_CTX_KEY);
             }
         } catch (Exception ignored) {
@@ -98,11 +99,8 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
 
         for (Generation generation : chatResponse.getResults()) {
             AssistantMessage assistantMessage = generation.getOutput();
-            if (assistantMessage == null || assistantMessage.getToolCalls() == null) {
-                continue;
-            }
             for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-                String toolName = toolCall.name() != null ? toolCall.name() : "unknown";
+                String toolName = toolCall.name();
                 Map<String, Object> inputData = parseArguments(toolCall.arguments());
                 try {
                     eventBus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, inputData));
@@ -125,11 +123,8 @@ public class NotifyingToolCallingManager implements ToolCallingManager {
 
         for (Generation generation : chatResponse.getResults()) {
             AssistantMessage assistantMessage = generation.getOutput();
-            if (assistantMessage == null || assistantMessage.getToolCalls() == null) {
-                continue;
-            }
             for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-                String toolName = toolCall.name() != null ? toolCall.name() : "unknown";
+                String toolName = toolCall.name();
                 try {
                     eventBus.publish(ToolEventBus.ToolEvent.toolResult(sessionId, toolName, resultState));
                     log.debug("Published TOOL_RESULT event: session={}, tool={}, state={}",
