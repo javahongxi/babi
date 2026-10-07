@@ -70,11 +70,11 @@ public class BabiService {
 
         new Thread(() -> {
             try {
-                // Set ThreadLocal for tool event emission and model override
+                // Set ThreadLocal for tool event emission and register the model override;
+                // both are picked up by the hooks via the graph run's threadId, because
+                // LangGraph4J executes its actions on pool threads
                 SessionContextHolder.setSessionId(sessionId);
-                if (model != null && !model.isBlank()) {
-                    SessionContextHolder.setModelOverride(model);
-                }
+                DashScopeChatModel.registerModelOverride(sessionId, model);
 
                 // Clear stale FINAL_RESPONSE from previous turn (LangGraph4J bug:
                 // executeTool routes based on state.finalResponse(), which persists
@@ -109,7 +109,7 @@ public class BabiService {
             } finally {
                 activeSessions.remove(sessionId);
                 activeGenerators.remove(sessionId);
-                DashScopeChatModel.unregisterSinks(sessionId);
+                DashScopeChatModel.unregisterSession(sessionId);
                 thinkingSink.tryEmitComplete();
                 textSink.tryEmitComplete();
                 SessionContextHolder.clear();

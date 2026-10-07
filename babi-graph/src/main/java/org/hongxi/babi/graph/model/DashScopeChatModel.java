@@ -84,6 +84,13 @@ public class DashScopeChatModel implements StreamingChatModel {
     private static final Map<String, Sinks.Many<String>> TEXT_SINKS = new ConcurrentHashMap<>();
 
     /**
+     * Per-session model override chosen by the user. Registered by BabiService before
+     * graph execution and bridged to the executing thread by {@code ModelSwitchingNodeHook},
+     * because LangGraph4J runs the call-model node on a pool thread.
+     */
+    private static final Map<String, String> MODEL_OVERRIDES = new ConcurrentHashMap<>();
+
+    /**
      * Register a thinking sink for a session.
      * Must be called before graph.stream() for that session.
      */
@@ -100,11 +107,31 @@ public class DashScopeChatModel implements StreamingChatModel {
     }
 
     /**
-     * Unregister all sinks for a session.
+     * Register the model override for a session.
+     * Must be called before graph.stream() for that session.
      */
-    public static void unregisterSinks(String sessionId) {
+    public static void registerModelOverride(String sessionId, String model) {
+        if (model != null && !model.isBlank()) {
+            MODEL_OVERRIDES.put(sessionId, model);
+        } else {
+            MODEL_OVERRIDES.remove(sessionId);
+        }
+    }
+
+    /**
+     * Model override registered for a session, or {@code null} to use the default model.
+     */
+    public static String modelOverrideFor(String sessionId) {
+        return sessionId == null ? null : MODEL_OVERRIDES.get(sessionId);
+    }
+
+    /**
+     * Unregister all per-session state (sinks and model override) of a session.
+     */
+    public static void unregisterSession(String sessionId) {
         THINKING_SINKS.remove(sessionId);
         TEXT_SINKS.remove(sessionId);
+        MODEL_OVERRIDES.remove(sessionId);
     }
 
     private final String apiKey;

@@ -37,6 +37,13 @@ public final class SessionContextHolder {
         return MODEL_OVERRIDE.get();
     }
 
+    /**
+     * Removes only the model override, leaving the session ID untouched.
+     */
+    public static void clearModelOverride() {
+        MODEL_OVERRIDE.remove();
+    }
+
     public static void clear() {
         SESSION_ID.remove();
         MODEL_OVERRIDE.remove();

@@ -12,6 +12,7 @@ import org.hongxi.babi.common.config.AgentProperties;
 import org.hongxi.babi.common.config.DashScopeProperties;
 import org.hongxi.babi.common.eventbus.ToolEventBus;
 import org.hongxi.babi.common.prompt.CodingSystemPrompt;
+import org.hongxi.babi.graph.hook.ModelSwitchingNodeHook;
 import org.hongxi.babi.graph.hook.ToolNotificationEdgeHook;
 import org.hongxi.babi.graph.model.DashScopeChatModel;
 import org.hongxi.babi.graph.tool.*;
@@ -130,6 +131,9 @@ public class AgentConfiguration {
 
         // Register tool-call notification hook on the "action" edge
         graph.addWrapCallEdgeHook(Agent.ACTION_LABEL, new ToolNotificationEdgeHook(toolEventBus));
+
+        // Bridge the per-session model override to the thread that runs the model call
+        graph.addWrapCallNodeHook(Agent.AGENT_LABEL, new ModelSwitchingNodeHook());
 
         var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)

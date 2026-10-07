@@ -28,8 +28,10 @@ import java.util.concurrent.CompletableFuture;
  * By hooking into the graph's action edge, all tool calls are captured
  * in a single, centralized location — keeping tool classes as plain POJOs.
  *
- * <p>The session ID is read from {@link SessionContextHolder} (ThreadLocal),
- * which is set by {@code BabiService} before invoking the graph.
+ * <p>The session ID comes from {@link RunnableConfig#threadId()}, which {@code BabiService}
+ * fills with the per-request session ID. Since LangGraph4J 1.9.x runs node/edge actions on
+ * pool threads, the {@link SessionContextHolder} ThreadLocal set by the submitting thread is
+ * not visible here, so it is only kept as a fallback.
  */
 public class ToolNotificationEdgeHook implements EdgeHook.WrapCall<AgentExecutor.State> {
 
@@ -47,19 +49,31 @@ public class ToolNotificationEdgeHook implements EdgeHook.WrapCall<AgentExecutor
                                                  AgentExecutor.State state,
                                                  RunnableConfig config,
                                                  AsyncCommandAction<AgentExecutor.State> action) {
-        publishToolCallEvents(state);
+        final String sessionId = resolveSessionId(config);
+        publishToolCallEvents(state, sessionId);
         return action.apply(state, config)
                 .whenComplete((command, ex) -> {
-                    publishToolResultEvents(state, resolveToolState(ex));
+                    publishToolResultEvents(state, sessionId, resolveToolState(ex));
                 });
+    }
+
+    /**
+     * Resolve the session ID of the current run.
+     *
+     * <p>Prefers the graph's {@code threadId}, because the hook may be invoked on a
+     * pool thread that never saw {@link SessionContextHolder} being set.
+     */
+    private static String resolveSessionId(RunnableConfig config) {
+        return config.threadId()
+                .orElseGet(SessionContextHolder::getSessionId);
     }
 
     /**
      * Extract tool execution requests from the last AI message and publish events.
      */
-    private void publishToolCallEvents(AgentExecutor.State state) {
-        String sessionId = SessionContextHolder.getSessionId();
+    private void publishToolCallEvents(AgentExecutor.State state, String sessionId) {
         if (sessionId == null || eventBus == null) {
+            log.debug("Skipping TOOL_CALL events: no session ID in graph run config");
             return;
         }
 
@@ -86,8 +100,7 @@ public class ToolNotificationEdgeHook implements EdgeHook.WrapCall<AgentExecutor
     /**
      * Publish tool result events for all tool requests in the last AI message.
      */
-    private void publishToolResultEvents(AgentExecutor.State state, ToolEventBus.ToolState resultState) {
-        String sessionId = SessionContextHolder.getSessionId();
+    private void publishToolResultEvents(AgentExecutor.State state, String sessionId, ToolEventBus.ToolState resultState) {
         if (sessionId == null || eventBus == null) {
             return;
         }
