@@ -29,12 +29,6 @@ import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.ModelProvider;
-import dev.langchain4j.model.chat.Capability;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -52,15 +46,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import reactor.core.publisher.Sinks;
 
 /**
- * DashScope SDK adapter that implements langchain4j's {@link ChatModel} and
- * {@link StreamingChatModel} interfaces, allowing langgraph4j's agent-executor
- * (which is built on langchain4j types) to use DashScope directly.
+ * DashScope SDK adapter that implements langchain4j's {@link StreamingChatModel} interface,
+ * allowing langgraph4j's agent-executor (which is built on langchain4j types) to use DashScope directly.
  *
  * <p>Automatically routes to the appropriate DashScope API based on model type:
  * multimodal models use {@link MultiModalConversation} API, while text-only models
@@ -69,15 +61,18 @@ import reactor.core.publisher.Sinks;
  *
  * <p>Supports:
  * <ul>
- *   <li>Synchronous chat via {@link #doChat(ChatRequest)}</li>
  *   <li>Streaming chat via {@link #doChat(ChatRequest, StreamingChatResponseHandler)}</li>
+ *   <li>Non-streaming chat via {@link #chatSync(ChatRequest)}, kept as a plain method because
+ *       since langchain4j 1.20.0 a single class can no longer implement both {@code ChatModel}
+ *       and {@code StreamingChatModel}: their {@code chat(List<ChatMessage>)} overloads declare
+ *       incompatible return types ({@code ChatResponse} vs {@code Flow.Publisher}).</li>
  *   <li>Tool calling with proper specification conversion</li>
  *   <li>Streaming tool call accumulation (incremental output mode)</li>
  *   <li>Reasoning/thinking content streaming</li>
  *   <li>Native search (enable_search)</li>
  * </ul>
  */
-public class DashScopeChatModel implements ChatModel, StreamingChatModel {
+public class DashScopeChatModel implements StreamingChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(DashScopeChatModel.class);
     private static final Gson GSON = new Gson();
@@ -146,32 +141,15 @@ public class DashScopeChatModel implements ChatModel, StreamingChatModel {
         return defaultModel;
     }
 
-    @Override
-    public Set<Capability> supportedCapabilities() {
-        return Set.of();
-    }
-
-    @Override
-    public ModelProvider provider() {
-        return ModelProvider.OTHER;
-    }
-
-    @Override
-    public List<ChatModelListener> listeners() {
-        return List.of();
-    }
-
-    @Override
-    public ChatRequestParameters defaultRequestParameters() {
-        return DefaultChatRequestParameters.EMPTY;
-    }
-
     // =========================================================================
-    // ChatModel (synchronous)
+    // Synchronous (non-streaming) chat
     // =========================================================================
 
-    @Override
-    public ChatResponse doChat(ChatRequest chatRequest) {
+    /**
+     * Performs a single non-streaming DashScope call and returns the aggregated response.
+     * Not part of a langchain4j interface — see the class javadoc for why.
+     */
+    public ChatResponse chatSync(ChatRequest chatRequest) {
         String model = resolveModel();
         if (ModelCatalog.isMultimodalModel(model)) {
             List<MultiModalMessage> messages = convertMultiModalMessages(chatRequest.messages());
