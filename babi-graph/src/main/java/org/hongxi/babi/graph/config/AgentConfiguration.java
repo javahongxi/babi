@@ -137,6 +137,11 @@ public class AgentConfiguration {
 
         var compileConfig = CompileConfig.builder()
                 .checkpointSaver(memorySaver)
+                // Keep per-session checkpoints alive across turns so the
+                // MessagesState appender accumulates conversation history;
+                // otherwise the graph releases (deletes) the threadId's
+                // checkpoint at every END and each turn starts blank.
+                .releaseThread(false)
                 .recursionLimit(50)
                 .build();
 

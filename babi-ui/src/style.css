@@ -1,0 +1,44 @@
+/* === babi-ui global styles: theme tokens + resets === */
+
+:root {
+  --text: #333;
+  --text-muted: #666;
+  --bg: #ffffff;
+  --border: #e0e0e0;
+  --code-bg: #f6f8fa;
+  --accent: #1a73e8;
+  --header-bg: #1a1a2e;
+  --msg-agent-bg: rgba(255,255,255,0.65);
+
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+[data-theme="dark"] {
+  --text: #e0e0e0;
+  --text-muted: #999;
+  --bg: #1a1a2e;
+  --border: #30363d;
+  --code-bg: #161b22;
+  --accent: #58a6ff;
+  --header-bg: #0d1117;
+  --msg-agent-bg: rgba(40,40,50,0.6);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+#app { height: 100vh; }
+
+/* hljs github.css forces bg #fff — override for dark mode */
+[data-theme="dark"] .hljs {
+  background: var(--code-bg) !important;
+  color: #c9d1d9 !important;
+}

@@ -57,20 +57,36 @@ export GITHUB_TOKEN=your_github_token
 ### Web 聊天界面（推荐）
 
 ```bash
-# AgentScope 版本
+# AgentScope 版本 http://localhost:8900
 mvn spring-boot:run -pl babi-agent
 
-# LangGraph4j 版本
+# LangGraph4j 版本 http://localhost:8901
 mvn spring-boot:run -pl babi-graph
 
-# Spring AI 版本
+# Spring AI 版本 http://localhost:8902
 mvn spring-boot:run -pl babi-spring
 ```
 
-打开浏览器访问 `http://localhost:8900`（AgentScope）、`http://localhost:8901`（LangGraph4j）或
-`http://localhost:8902`（Spring AI），即可在聊天界面中与 Babi Agent 交互。
-
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
+
+### babi-ui（前端源码版）
+
+`static/index.html` 是随各模块打包、零构建即用的单文件聊天界面。babi-ui 用 Vue 3 + TypeScript 重写同一套界面，作为可定制与前端学习入口：只演示就用内置页，想改界面或学前端就动 babi-ui，两条路径互不影响。
+
+```bash
+cd babi-ui
+npm install
+npm run dev       # 开发预览 http://localhost:5173；/api 代理到本地 8901（需先启动 babi-graph）
+npm run build     # 产出到 babi-ui/dist/，不覆盖内置 static/index.html
+```
+
+代理目标端口写在 `vite.config.ts`，默认指向 8901；要联调另外两个模块，改成 8900 / 8902 即可。
+
+相对内置单文件版：
+
+- **热模块替换** — Vite 监听源码，改文件即时推送到浏览器，无需重启后端或手动刷新
+- **组件化 + 类型化** — 界面拆成独立组件，`types/chat.ts` 以 TypeScript 建模后端接口契约，字段不匹配编译期即报错
+- **按需加载** — highlight.js 仅注册常用语言，产物体积可控
 
 ### 命令行模式
 
