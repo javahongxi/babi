@@ -69,7 +69,7 @@ mvn spring-boot:run -pl babi-spring
 
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
 
-### babi-ui（前端源码版）
+### babi-ui（可定制前端）
 
 `static/index.html` 是随各模块打包、零构建即用的单文件聊天界面。babi-ui 用 Vue 3 + TypeScript 重写同一套界面，作为可定制与前端学习入口：只演示就用内置页，想改界面或学前端就动 babi-ui，两条路径互不影响。
 
@@ -85,7 +85,7 @@ npm run build     # 产出到 babi-ui/dist/，不覆盖内置 static/index.html
 相对内置单文件版：
 
 - **热模块替换** — Vite 监听源码，改文件即时推送到浏览器，无需重启后端或手动刷新
-- **组件化 + 类型化** — 界面拆成独立组件，`types/chat.ts` 以 TypeScript 建模后端接口契约，字段不匹配编译期即报错
+- **组件化 + 类型化** — 界面拆成独立组件，`types/chat.ts` 以 TypeScript 建模后端契约，字段不符编译期即报错
 - **按需加载** — highlight.js 仅注册常用语言，产物体积可控
 
 ### 命令行模式
