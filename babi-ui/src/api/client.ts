@@ -24,10 +24,16 @@ export async function deleteSession(sessionId: string): Promise<void> {
   })
 }
 
-export async function deleteMemory(sessionId: string): Promise<void> {
-  await fetch(`/api/chat/memory?sessionId=${encodeURIComponent(sessionId)}`, {
+export async function deleteMemory(sessionId: string): Promise<string> {
+  const res = await fetch(`/api/chat/memory?sessionId=${encodeURIComponent(sessionId)}`, {
     method: 'DELETE',
   })
+  try {
+    const data = await res.json()
+    return data.message || 'Memory cleared'
+  } catch {
+    return res.ok ? 'Memory cleared' : `清除记忆失败 (HTTP ${res.status})`
+  }
 }
 
 export async function interruptChat(sessionId: string): Promise<void> {

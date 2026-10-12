@@ -143,7 +143,9 @@ export function useChat() {
   }
 
   async function clearMemory() {
-    await deleteMemory(sessionId.value)
+    if (!confirm('确定要清除工作区记忆吗？这将删除 MEMORY.md，Agent 将不再记得之前的个人信息和上下文。')) return
+    const message = await deleteMemory(sessionId.value)
+    alert(message)
   }
 
   return {
