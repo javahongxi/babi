@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useChat } from './composables/useChat'
 import { useWorkspace } from './composables/useWorkspace'
 import { useTheme } from './composables/useTheme'
+import { useConnection } from './composables/useConnection'
 
 import AppHeader from './components/AppHeader.vue'
 import SessionBar from './components/SessionBar.vue'
@@ -14,17 +15,26 @@ import Lightbox from './components/Lightbox.vue'
 
 const chat = useChat()
 const workspace = useWorkspace()
+const conn = useConnection()
 const { theme, init: initTheme, toggle: toggleTheme } = useTheme()
 
 onMounted(async () => {
   initTheme()
+  conn.init()
   await chat.loadConfig()
   await workspace.loadTree()
 })
+
+onUnmounted(() => conn.stop())
 </script>
 
 <template>
   <div class="app">
+    <Transition name="banner">
+      <div v-if="conn.isOffline.value" class="offline-banner" role="alert">
+        ⚠️ {{ conn.message.value }}
+      </div>
+    </Transition>
     <AppHeader
       :badge="chat.badge.value"
       :models="chat.models.value"
@@ -82,6 +92,12 @@ onMounted(async () => {
 
 <style>
 .app { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.offline-banner {
+  background: #ea4335; color: #fff; text-align: center;
+  padding: 8px 16px; font-size: 14px; z-index: 200;
+}
+.banner-enter-active, .banner-leave-active { transition: all 0.25s ease; }
+.banner-enter-from, .banner-leave-to { opacity: 0; transform: translateY(-100%); }
 .main-content { flex: 1; display: flex; overflow: hidden; }
 .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .sidebar-toggle {
