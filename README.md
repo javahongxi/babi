@@ -2,10 +2,10 @@
 
 深入实践 AI Coding Agent，基于 AgentScope Java 探索 Agent 工程化落地。
 
-| 模块            | 技术栈                | 说明                           |
-|-----------------|-----------------------|--------------------------------|
-| **babi-agent**  | AgentScope Java 2.0.4 | 后端主干，Web + CLI 双模式     |
-| **babi-ui**     | Vue 3 + TypeScript + Vite | 唯一前端，可定制聊天界面   |
+| 模块           | 技术栈                    | 说明                       |
+|----------------|---------------------------|----------------------------|
+| **babi-agent** | AgentScope Java 2.0.4     | 后端主干，Web + CLI 双模式 |
+| **babi-ui**    | Vue 3 + TypeScript + Vite | 唯一前端，可定制聊天界面   |
 
 > 历史上的 LangGraph4j / Spring AI 对照实现已归档至 `archive/multi-framework` 分支（tag: `v0.9-multi-framework`）。
 
