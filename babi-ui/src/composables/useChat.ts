@@ -1,5 +1,6 @@
 import { ref, reactive, readonly } from 'vue'
 import type { ChatMessage, ModelInfo, UIConfig } from '../types/chat'
+import { SUBAGENT_TOOLS } from '../types/chat'
 import { fetchUIConfig, deleteSession, deleteMemory, interruptChat } from '../api/client'
 
 export function useChat() {
@@ -119,13 +120,37 @@ export function useChat() {
         msg.toolEvents = [...(msg.toolEvents || []), { tool: parsed.tool || 'unknown', type: 'tool_call' }]
         toolCallCount.value++
         break
-      case 'tool_result':
+      case 'subagent':
         msg.toolEvents = [...(msg.toolEvents || []), {
-          tool: parsed.tool || 'unknown',
+          tool: parsed.tool || 'agent_spawn',
+          type: 'subagent',
+          agent: parsed.agent || 'subagent',
+          task: parsed.task,
+          state: 'RUNNING',
+        }]
+        toolCallCount.value++
+        break
+      case 'tool_result': {
+        const tool = parsed.tool || 'unknown'
+        // 子 agent 工具的结果不单独成行，回填到对应的 RUNNING 条目上
+        if (SUBAGENT_TOOLS.has(tool)) {
+          const events = [...(msg.toolEvents || [])]
+          for (let i = events.length - 1; i >= 0; i--) {
+            const e = events[i]
+            if (e.type === 'subagent' && e.tool === tool && e.state === 'RUNNING') {
+              events[i] = { ...e, state: parsed.state }
+              msg.toolEvents = events
+              return
+            }
+          }
+        }
+        msg.toolEvents = [...(msg.toolEvents || []), {
+          tool,
           type: 'tool_result',
           state: parsed.state,
         }]
         break
+      }
       case 'done':
         break
     }

@@ -11,6 +11,7 @@ import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
+import org.hongxi.babi.agent.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -139,6 +140,16 @@ public class BabiAgentController {
                                         "type", "tool_result",
                                         "tool", event.toolName() != null ? event.toolName() : "unknown",
                                         "state", state));
+                            } else if ("SUBAGENT".equals(event.eventType())) {
+                                Map<String, Object> data = new LinkedHashMap<>();
+                                data.put("type", "subagent");
+                                data.put("tool", event.toolName() != null ? event.toolName() : "unknown");
+                                data.put("agent", resolveSubagentName(event.data()));
+                                Object task = event.data() != null ? event.data().get("task") : null;
+                                if (task != null) {
+                                    data.put("task", AgentUtils.truncate(String.valueOf(task), 120));
+                                }
+                                return sse("subagent", data);
                             } else {
                                 Map<String, Object> data = new LinkedHashMap<>();
                                 data.put("type", "tool_call");
@@ -290,6 +301,21 @@ public class BabiAgentController {
         } else {
             return Mono.just(Map.of("status", "ok", "message", "No memory file found for session '" + sessionId + "'"));
         }
+    }
+
+    /**
+     * 从子 agent 工具输入中提取展示名：label > agent_id > task_id > "subagent"。
+     */
+    private static String resolveSubagentName(Map<String, Object> input) {
+        if (input != null) {
+            for (String key : new String[]{"label", "agent_id", "task_id"}) {
+                Object v = input.get(key);
+                if (v instanceof String s && !s.isBlank()) {
+                    return s;
+                }
+            }
+        }
+        return "subagent";
     }
 
     private static ServerSentEvent<String> sse(String eventType, Object data) {

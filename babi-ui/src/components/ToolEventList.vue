@@ -9,6 +9,16 @@ const props = defineProps<{
 const visibleCount = ref(2)
 const shown = () => props.events.slice(-visibleCount.value)
 const hiddenCount = () => Math.max(0, props.events.length - visibleCount.value)
+
+function subagentState(state?: ToolEvent['state']): string {
+  switch (state) {
+    case 'RUNNING': return '· 执行中…'
+    case 'SUCCESS': return '· 已完成'
+    case 'ERROR': return '· 失败'
+    case 'INTERRUPTED': return '· 已中断'
+    default: return ''
+  }
+}
 </script>
 
 <template>
@@ -20,9 +30,17 @@ const hiddenCount = () => Math.max(0, props.events.length - visibleCount.value)
       v-for="(evt, i) in shown()"
       :key="i"
       class="tool-event"
-      :class="{ success: evt.state === 'SUCCESS', error: evt.state === 'ERROR' }"
+      :class="[
+        evt.type === 'subagent' ? 'subagent' : '',
+        { success: evt.state === 'SUCCESS', error: evt.state === 'ERROR', running: evt.state === 'RUNNING' },
+      ]"
     >
-      <template v-if="evt.type === 'tool_call'">🔧 调用工具: {{ evt.tool }}</template>
+      <template v-if="evt.type === 'subagent'">
+        🤖 子 agent <b>{{ evt.agent }}</b>
+        <span v-if="evt.task" class="subagent-task">— {{ evt.task }}</span>
+        <span class="subagent-state">{{ subagentState(evt.state) }}</span>
+      </template>
+      <template v-else-if="evt.type === 'tool_call'">🔧 调用工具: {{ evt.tool }}</template>
       <template v-else>{{ evt.state === 'SUCCESS' ? '✅' : '❌' }} {{ evt.tool }} → {{ evt.state }}</template>
     </div>
   </div>
@@ -37,4 +55,8 @@ const hiddenCount = () => Math.max(0, props.events.length - visibleCount.value)
 }
 .tool-event.success { border-left-color: #34a853; }
 .tool-event.error { border-left-color: #ea4335; }
+.tool-event.subagent { border-left-color: #a855f7; }
+.tool-event.running { opacity: 0.85; }
+.subagent-task { color: var(--text-muted); font-style: italic; }
+.subagent-state { color: var(--accent); margin-left: 6px; font-size: 12px; }
 </style>

@@ -88,4 +88,37 @@ public final class AgentUtils {
             log.warn("Failed to initialize AGENTS.md: {}", e.getMessage());
         }
     }
+
+    /** Seed subagent declaration filenames (resources under /workspace/subagents/). */
+    private static final String[] SUBAGENT_SPECS = {"code-reviewer.md", "test-runner.md"};
+
+    /**
+     * Seed default subagent declarations into {@code {workspace}/subagents/}.
+     * Each file is copied from the classpath only when it doesn't already exist,
+     * so user edits and deletions are never overwritten.
+     *
+     * @param workspacePath the workspace directory
+     */
+    public static void initSubagents(Path workspacePath) {
+        Path subagentsDir = workspacePath.resolve("subagents");
+        for (String name : SUBAGENT_SPECS) {
+            Path target = subagentsDir.resolve(name);
+            if (Files.exists(target)) {
+                continue;
+            }
+            try {
+                Files.createDirectories(subagentsDir);
+                try (InputStream is = AgentUtils.class.getResourceAsStream("/workspace/subagents/" + name)) {
+                    if (is != null) {
+                        Files.copy(is, target, StandardCopyOption.REPLACE_EXISTING);
+                        log.info("Seeded subagent declaration: {}", name);
+                    } else {
+                        log.warn("Subagent declaration resource missing: {}", name);
+                    }
+                }
+            } catch (IOException e) {
+                log.warn("Failed to seed subagent declaration {}: {}", name, e.getMessage());
+            }
+        }
+    }
 }

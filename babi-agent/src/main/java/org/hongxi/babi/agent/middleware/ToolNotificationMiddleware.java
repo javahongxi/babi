@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
@@ -32,6 +33,14 @@ import reactor.core.publisher.Flux;
 public class ToolNotificationMiddleware implements MiddlewareBase {
 
     private static final Logger log = LoggerFactory.getLogger(ToolNotificationMiddleware.class);
+
+    /**
+     * HarnessAgent 子 agent 编排工具集（由 SubagentsMiddleware/DynamicSubagentsMiddleware 自动注册）。
+     * 这些工具的调用不以普通工具条目呈现，而是发布 SUBAGENT 事件供前端渲染为独立任务条目。
+     */
+    private static final Set<String> SUBAGENT_TOOLS = Set.of(
+            "agent_spawn", "agent_generate",
+            "task", "task_output", "task_cancel", "task_list");
 
     private final ToolEventBus bus;
 
@@ -56,8 +65,13 @@ public class ToolNotificationMiddleware implements MiddlewareBase {
                 }
                 String toolName = tu.getName() != null ? tu.getName() : "unknown";
                 try {
-                    bus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, inputData));
-                    log.debug("Published TOOL_CALL event: session={}, tool={}", sessionId, toolName);
+                    if (SUBAGENT_TOOLS.contains(toolName)) {
+                        bus.publish(ToolEventBus.ToolEvent.subagent(sessionId, toolName, inputData));
+                        log.debug("Published SUBAGENT event: session={}, tool={}", sessionId, toolName);
+                    } else {
+                        bus.publish(ToolEventBus.ToolEvent.toolCall(sessionId, toolName, inputData));
+                        log.debug("Published TOOL_CALL event: session={}, tool={}", sessionId, toolName);
+                    }
                 } catch (Exception e) {
                     log.debug("Failed to publish tool event for {}: {}", toolName, e.getMessage());
                 }

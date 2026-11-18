@@ -83,6 +83,20 @@ public class ToolEventBus {
         }
 
         /**
+         * 创建子 agent 任务事件（agent_spawn / task_* 等框架子 agent 工具调用）
+         *
+         * @param sessionId 会话 ID
+         * @param toolName  子 agent 工具名
+         * @param input     工具输入（含 agent_id / task / label 等）
+         */
+        public static ToolEvent subagent(
+                String sessionId,
+                String toolName,
+                Map<String, Object> input) {
+            return new ToolEvent(sessionId, "SUBAGENT", toolName, input);
+        }
+
+        /**
          * 创建工具执行结果事件
          *
          * @param sessionId 会话 ID

@@ -62,6 +62,9 @@ public class AgentConfiguration {
         }
 
         AgentUtils.initAgentsMd(path);
+        // Seed default subagent declarations (code-reviewer / test-runner) into
+        // {workspace}/subagents/ — scanned by HarnessAgent on every reasoning step.
+        AgentUtils.initSubagents(path);
         log.info("Agent workspace: {}", resolved);
         return path;
     }
