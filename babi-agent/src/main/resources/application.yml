@@ -12,7 +12,7 @@ babi:
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:}
     chat:
-      model: qwen3.7-plus
+      model: qwen3.8-flash
       # format: "provider:model-name" (e.g. dashscope:deepseek-v4-flash)
       # or DashScope qwen short form (e.g. qwen-plus)
       fallback-model: dashscope:deepseek-v4-flash

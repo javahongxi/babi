@@ -33,9 +33,9 @@
 
 默认使用 Qwen 系列模型：
 
-| 模块            | 模型         | SDK                                     | 环境变量            |
-|-----------------|--------------|-----------------------------------------|---------------------|
-| **babi-agent**  | qwen3.7-plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
+| 模块           | 模型          | SDK                                   | 环境变量            |
+|----------------|---------------|---------------------------------------|---------------------|
+| **babi-agent** | qwen3.8-flash | agentscope-extensions-model-dashscope | `DASHSCOPE_API_KEY` |
 
 > babi-agent 支持配置备用模型，当主模型不可用时，自动切换到备用模型，这是由框架支持的。
 
