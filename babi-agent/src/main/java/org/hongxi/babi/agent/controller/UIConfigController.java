@@ -1,7 +1,7 @@
 package org.hongxi.babi.agent.controller;
 
-import org.hongxi.babi.common.config.DashScopeProperties;
-import org.hongxi.babi.common.model.ModelCatalog;
+import org.hongxi.babi.agent.config.DashScopeProperties;
+import org.hongxi.babi.agent.model.ModelCatalog;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

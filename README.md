@@ -1,12 +1,13 @@
 # Babi Agent ♻️
 
-深入实践 AI Coding Agent，基于 AgentScope Java / LangGraph Java / Spring AI 2.0 探索 Agent 工程化落地。
+深入实践 AI Coding Agent，基于 AgentScope Java 探索 Agent 工程化落地。
 
 | 模块            | 技术栈                | 说明                           |
 |-----------------|-----------------------|--------------------------------|
-| **babi-agent**  | AgentScope Java 2.0.3 | 主版本，框架能力最强，开箱即用 |
-| **babi-graph**  | LangGraph4j 1.9.3     | 图编排实现，生态主流，灵活可控 |
-| **babi-spring** | Spring AI 2.0.1       | 轻量实现，适合深度定制         |
+| **babi-agent**  | AgentScope Java 2.0.4 | 后端主干，Web + CLI 双模式     |
+| **babi-ui**     | Vue 3 + TypeScript + Vite | 唯一前端，可定制聊天界面   |
+
+> 历史上的 LangGraph4j / Spring AI 对照实现已归档至 `archive/multi-framework` 分支（tag: `v0.9-multi-framework`）。
 
 ## 特性
 
@@ -30,19 +31,13 @@
 
 ## 环境准备
 
-各模块默认均使用 Qwen 系列模型：
+默认使用 Qwen 系列模型：
 
 | 模块            | 模型         | SDK                                     | 环境变量            |
 |-----------------|--------------|-----------------------------------------|---------------------|
 | **babi-agent**  | qwen3.7-plus | agentscope-extensions-model-dashscope   | `DASHSCOPE_API_KEY` |
-| **babi-graph**  | qwen3.7-plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
-| **babi-spring** | qwen3.7-plus | dashscope-sdk-java + DashScopeChatModel | `DASHSCOPE_API_KEY` |
 
 > babi-agent 支持配置备用模型，当主模型不可用时，自动切换到备用模型，这是由框架支持的。
->
-> babi-graph 为了让 langchain4j 支持原生 dashscope-sdk-java，提供了 DashScopeChatModel 实现。
->
-> babi-spring 为了让 Spring AI 支持原生 dashscope-sdk-java，提供了 DashScopeChatModel 实现。
 
 ```bash
 # 阿里云百炼 API Key
@@ -57,32 +52,30 @@ export GITHUB_TOKEN=your_github_token
 ### Web 聊天界面（推荐）
 
 ```bash
-# AgentScope 版本 http://localhost:8900
+# 1. 启动后端 http://localhost:8900
 mvn spring-boot:run -pl babi-agent
 
-# LangGraph4j 版本 http://localhost:8901
-mvn spring-boot:run -pl babi-graph
-
-# Spring AI 版本 http://localhost:8902
-mvn spring-boot:run -pl babi-spring
+# 2. 启动前端 http://localhost:5173
+cd babi-ui
+npm install
+npm run dev
 ```
 
 支持 Markdown 实时渲染、工具调用状态可视化、多轮会话（Session ID 隔离上下文）。
 
-### babi-ui（可定制前端）
+### babi-ui（唯一前端）
 
-`static/index.html` 是随各模块打包、零构建即用的单文件聊天界面。babi-ui 用 Vue 3 + TypeScript 重写同一套界面，作为可定制与前端学习入口：只演示就用内置页，想改界面或学前端就动 babi-ui，两条路径互不影响。
+babi-ui 用 Vue 3 + TypeScript 实现聊天界面，是 Babi Agent 的唯一前端，后端不再内置静态页面。
 
 ```bash
 cd babi-ui
-npm install
-npm run dev       # 开发预览 http://localhost:5173；/api 代理到本地 8901（需先启动 babi-graph）
-npm run build     # 产出到 babi-ui/dist/，不覆盖内置 static/index.html
+npm run dev       # 开发预览 http://localhost:5173；/api 代理到本地 8900（需先启动 babi-agent）
+npm run build     # 产出到 babi-ui/dist/，可部署到任意静态服务器
 ```
 
-代理目标端口写在 `vite.config.ts`，默认指向 8901；要联调另外两个模块，改成 8900 / 8902 即可。
+代理目标端口写在 `vite.config.ts`，默认指向 8900。
 
-相对内置单文件版：
+前端特性：
 
 - **热模块替换** — Vite 监听源码，改文件即时推送到浏览器，无需重启后端或手动刷新
 - **组件化 + 类型化** — 界面拆成独立组件，`types/chat.ts` 以 TypeScript 建模后端契约，字段不符编译期即报错

@@ -17,28 +17,12 @@
     <url>https://github.com/javahongxi/babi</url>
 
     <modules>
-        <module>babi-common</module>
         <module>babi-agent</module>
-        <module>babi-graph</module>
-        <module>babi-spring</module>
     </modules>
 
     <properties>
         <agentscope.version>2.0.4</agentscope.version>
-        <langgraph4j.version>1.9.3</langgraph4j.version>
-        <langchain4j-bom.version>1.21.0</langchain4j-bom.version>
-        <spring-ai.version>2.0.1</spring-ai.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>2.23.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <finalName>${project.artifactId}</finalName>

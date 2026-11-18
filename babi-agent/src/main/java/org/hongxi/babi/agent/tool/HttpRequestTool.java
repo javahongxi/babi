@@ -2,7 +2,7 @@ package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.hongxi.babi.common.tool.HttpRequestLogic;
+import org.hongxi.babi.agent.tool.HttpRequestLogic;
 
 import java.net.http.HttpClient;
 import java.util.Map;

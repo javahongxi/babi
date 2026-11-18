@@ -2,7 +2,7 @@ package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.hongxi.babi.common.tool.GlobLogic;
+import org.hongxi.babi.agent.tool.GlobLogic;
 
 /**
  * Tool for finding files by name pattern using glob syntax.

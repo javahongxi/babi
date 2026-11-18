@@ -9,17 +9,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:8901',
+        target: 'http://localhost:8900',
         changeOrigin: true,
       },
     },
   },
 
   build: {
-    // 默认输出到 babi-ui/dist/（已被 .gitignore 忽略）
-    // 想把新版 UI 装进 Spring Boot 静态目录，手动执行：
-    //   rm -rf ../babi-common/src/main/resources/static/*
-    //   cp -r dist/* ../babi-common/src/main/resources/static/
+    // 输出到 babi-ui/dist/（已被 .gitignore 忽略），可部署到任意静态服务器
     outDir: 'dist',
     emptyOutDir: true,
   },

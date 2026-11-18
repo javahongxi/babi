@@ -2,7 +2,7 @@ package org.hongxi.babi.agent.tool;
 
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.hongxi.babi.common.tool.ImageGenerationLogic;
+import org.hongxi.babi.agent.tool.ImageGenerationLogic;
 
 import java.net.http.HttpClient;
 

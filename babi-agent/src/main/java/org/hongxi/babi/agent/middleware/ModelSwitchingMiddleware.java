@@ -8,7 +8,7 @@ import io.agentscope.core.middleware.ModelCallInput;
 import io.agentscope.core.model.Model;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.extensions.model.dashscope.EndpointType;
-import org.hongxi.babi.common.model.ModelCatalog;
+import org.hongxi.babi.agent.model.ModelCatalog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;

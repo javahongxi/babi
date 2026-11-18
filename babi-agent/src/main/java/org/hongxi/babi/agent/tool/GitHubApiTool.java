@@ -3,7 +3,7 @@ package org.hongxi.babi.agent.tool;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import org.hongxi.babi.common.tool.GitHubApiLogic;
+import org.hongxi.babi.agent.tool.GitHubApiLogic;
 
 import java.net.http.HttpClient;
 import java.util.Map;
