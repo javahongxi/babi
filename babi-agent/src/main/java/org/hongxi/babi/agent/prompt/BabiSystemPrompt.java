@@ -8,19 +8,19 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Constructs the system prompt for the coding agent.
+ * Constructs the system prompt for the local-first AI office & coding assistant.
  *
  * <p>This shared prompt builder provides babi-specific rules and custom tool
- * guidance. It is used by both AgentScope and LangGraph4j implementations.
+ * guidance. It is used by both the Web (AgentConfiguration) and CLI entry points.
  *
  * <p>To customize the prompt without recompiling, place a file at
  * {@code prompts/custom-instructions.md} on the classpath (e.g. under
  * {@code src/main/resources/prompts/}). Its content will be appended to the
  * built-in prompt.
  */
-public final class CodingSystemPrompt {
+public final class BabiSystemPrompt {
 
-    private CodingSystemPrompt() {}
+    private BabiSystemPrompt() {}
 
     /**
      * Builds the system prompt with loaded skills and workspace info.
@@ -44,6 +44,7 @@ public final class CodingSystemPrompt {
                                boolean enableSearch, boolean taskListEnabled) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
+                identitySection(),
                 workspaceSection(workspace),
                 coreRulesSection(enableSearch, skills),
                 skillsSection(skills),
@@ -74,6 +75,15 @@ public final class CodingSystemPrompt {
     // -----------------------------------------------------------------
     //  Sections
     // -----------------------------------------------------------------
+
+    private static String identitySection() {
+        return """
+                You are BabiAgent, a local-first AI office assistant with expert coding skills.
+                You run entirely on the user's machine: help with documents, research, planning,
+                automation, and code. User files and conversations stay local — never suggest
+                uploading them to external services unless the user explicitly asks.
+                """;
+    }
 
     private static String workspaceSection(String workspace) {
         return """
@@ -171,7 +181,7 @@ public final class CodingSystemPrompt {
      * resource is not found.
      */
     private static String loadCustomInstructions() {
-        try (InputStream is = CodingSystemPrompt.class.getResourceAsStream(
+        try (InputStream is = BabiSystemPrompt.class.getResourceAsStream(
                 "/prompts/custom-instructions.md")) {
             if (is != null) {
                 String content = new String(is.readAllBytes(), StandardCharsets.UTF_8).strip();

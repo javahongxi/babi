@@ -72,7 +72,7 @@ public final class AgentUtils {
             String defaultContent = """
                     # BabiAgent
                     
-                    You are BabiAgent, an expert coding assistant.
+                    You are BabiAgent, a local-first AI office assistant with expert coding skills.
                     
                     ## Rules
                     

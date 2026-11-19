@@ -16,7 +16,7 @@ import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ModelSwitchingMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
 import org.hongxi.babi.agent.model.ModelCatalog;
-import org.hongxi.babi.agent.prompt.CodingSystemPrompt;
+import org.hongxi.babi.agent.prompt.BabiSystemPrompt;
 import org.hongxi.babi.agent.util.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,7 +126,7 @@ public class AgentConfiguration {
         }
 
         // Build system prompt with workspace info and skills
-        String sysPrompt = CodingSystemPrompt.build(
+        String sysPrompt = BabiSystemPrompt.build(
                 workspacePath.toString(),
                 skillTool.getSkills().values(),
                 properties.chat().enableSearch());
