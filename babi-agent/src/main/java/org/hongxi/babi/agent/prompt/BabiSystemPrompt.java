@@ -42,6 +42,21 @@ public final class BabiSystemPrompt {
      */
     public static String build(String workspace, Collection<Skill> skills,
                                boolean enableSearch, boolean taskListEnabled) {
+        return build(workspace, skills, enableSearch, taskListEnabled, false);
+    }
+
+    /**
+     * Builds the system prompt with all optional sections.
+     *
+     * @param workspace        the absolute path of the current workspace
+     * @param skills           the collection of loaded skills (maybe empty)
+     * @param enableSearch     whether the LLM's built-in search is enabled (no web_search tool needed)
+     * @param taskListEnabled  whether the todo_write tool is registered (adds task list guidance)
+     * @param knowledgeEnabled whether the local knowledge base tools are registered
+     */
+    public static String build(String workspace, Collection<Skill> skills,
+                               boolean enableSearch, boolean taskListEnabled,
+                               boolean knowledgeEnabled) {
         String custom = loadCustomInstructions();
         return String.join("\n\n",
                 identitySection(),
@@ -50,6 +65,7 @@ public final class BabiSystemPrompt {
                 skillsSection(skills),
                 guidelinesSection(enableSearch),
                 taskListEnabled ? taskListSection() : "",
+                knowledgeEnabled ? knowledgeSection() : "",
                 custom
         ).strip();
     }
@@ -153,6 +169,19 @@ public final class BabiSystemPrompt {
                 You have a `todo_write` tool that maintains a structured task list for this session.
                 Use it for multi-step work: capture the plan as todos, keep exactly one task
                 `in_progress`, and update the whole list as you make progress.
+                """;
+    }
+
+    private static String knowledgeSection() {
+        return """
+                ## Local Knowledge Base
+                You have a persistent local knowledge base with these tools:
+                - knowledge_add(path): ingest a document (pdf, docx, txt, md, rst) for semantic search
+                - knowledge_search(query): find relevant chunks across ingested documents
+                - knowledge_list(): show ingested documents; knowledge_remove(source): delete one
+                Routing: for questions over previously ingested material, call knowledge_search FIRST.
+                For workspace files NOT in the knowledge base, use glob/read tools instead.
+                When answering from knowledge_search results, cite the source file paths.
                 """;
     }
 

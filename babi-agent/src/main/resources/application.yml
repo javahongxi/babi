@@ -9,6 +9,12 @@ babi:
   agent:
     workspace: ~/babi-workspace
     enable-task-list: true
+    knowledge:
+      enabled: true
+      embedding-model: text-embedding-v4
+      dimensions: 1024
+      top-k: 5
+      store-dir: ~/.babi/knowledge
   dashscope:
     api-key: ${DASHSCOPE_API_KEY:}
     chat:

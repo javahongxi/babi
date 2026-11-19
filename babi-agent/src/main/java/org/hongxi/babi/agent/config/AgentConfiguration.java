@@ -1,5 +1,7 @@
 package org.hongxi.babi.agent.config;
 
+import io.agentscope.core.embedding.dashscope.DashScopeTextEmbedding;
+import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
@@ -12,6 +14,7 @@ import org.hongxi.babi.agent.tool.*;
 import org.hongxi.babi.agent.config.AgentProperties;
 import org.hongxi.babi.agent.config.DashScopeProperties;
 import org.hongxi.babi.agent.eventbus.ToolEventBus;
+import org.hongxi.babi.agent.knowledge.JsonFileVectorStore;
 import org.hongxi.babi.agent.middleware.ContextTruncateMiddleware;
 import org.hongxi.babi.agent.middleware.ModelSwitchingMiddleware;
 import org.hongxi.babi.agent.middleware.ToolNotificationMiddleware;
@@ -42,7 +45,7 @@ import java.nio.file.Paths;
  * <p>The controller only consumes these beans — it does not know how to build an agent.
  */
 @Configuration
-@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class})
+@EnableConfigurationProperties({AgentProperties.class, DashScopeProperties.class, KnowledgeProperties.class})
 public class AgentConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AgentConfiguration.class);
@@ -103,6 +106,7 @@ public class AgentConfiguration {
             AgentStateStore stateStore,
             ToolEventBus toolEventBus,
             AgentProperties agentProperties,
+            KnowledgeProperties knowledgeProperties,
             DashScopeProperties properties) {
 
         // Register babi-specific custom tools
@@ -126,11 +130,34 @@ public class AgentConfiguration {
                     properties.image().promptExtend()));
         }
 
+        // Register local knowledge base tools when enabled and an API key is available
+        // (embedding calls DashScope directly with the same BYOK key as chat)
+        boolean knowledgeEnabled = knowledgeProperties.enabled()
+                && properties.apiKey() != null && !properties.apiKey().isBlank();
+        if (knowledgeEnabled) {
+            DashScopeTextEmbedding embeddingModel = DashScopeTextEmbedding.builder()
+                    .apiKey(properties.apiKey())
+                    .modelName(knowledgeProperties.embeddingModel())
+                    .dimensions(knowledgeProperties.dimensions())
+                    .build();
+            JsonFileVectorStore vectorStore = new JsonFileVectorStore(
+                    Path.of(AgentUtils.resolveWorkspace(knowledgeProperties.storeDir())),
+                    knowledgeProperties.dimensions());
+            SimpleKnowledge knowledge = SimpleKnowledge.builder()
+                    .embeddingModel(embeddingModel)
+                    .embeddingStore(vectorStore)
+                    .build();
+            toolkit.registerTool(new KnowledgeTool(knowledge, vectorStore, knowledgeProperties.topK()));
+            log.info("Local knowledge base enabled (store: {})", knowledgeProperties.storeDir());
+        }
+
         // Build system prompt with workspace info and skills
         String sysPrompt = BabiSystemPrompt.build(
                 workspacePath.toString(),
                 skillTool.getSkills().values(),
-                properties.chat().enableSearch());
+                properties.chat().enableSearch(),
+                false,
+                knowledgeEnabled);
 
         // Build model with explicit endpoint routing for multimodal models
         // (agentscope-java AUTO detection may not include recently released models)
