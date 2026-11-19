@@ -13,6 +13,7 @@ import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import org.hongxi.babi.agent.knowledge.JsonFileVectorStore;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,6 +29,9 @@ import java.util.Map;
  * {@link JsonFileVectorStore}. Retrieval is semantic search over ingested
  * chunks — for files not yet ingested use glob/read tools instead.
  */
+// The rag model classes are @Deprecated(forRemoval) since AgentScope 2.0.0, but
+// SimpleKnowledge and the readers still require them; no replacement exists in 2.0.4.
+@SuppressWarnings({"removal"})
 public class KnowledgeTool {
 
     private final SimpleKnowledge knowledge;
@@ -62,7 +66,7 @@ public class KnowledgeTool {
                     + "'. Supported: pdf, docx, txt, md, rst (legacy .doc must be converted to .docx first)";
         }
         try {
-            List<Document> docs = reader.read(ReaderInput.fromPath(file)).block();
+            List<Document> docs = reader.read(inputFor(reader, file)).block();
             if (docs == null || docs.isEmpty()) {
                 return "No extractable text found in: " + file;
             }
@@ -175,6 +179,25 @@ public class KnowledgeTool {
             return new TextReader();
         }
         return null;
+    }
+
+    /**
+     * Builds the {@link ReaderInput} matching a reader's input contract.
+     *
+     * <p>The rag-simple readers disagree about what {@code ReaderInput.asString()} means.
+     * {@link PDFReader} and {@link WordReader} treat it as a path on disk and open the file
+     * themselves, whereas {@link TextReader} treats it as the document body and chunks it
+     * verbatim. {@code ReaderInput.forFile} carries the file's content, {@code forPath} carries
+     * its path — both report {@code InputType.FILE}, so the caller has to pick.
+     *
+     * <p>Feeding {@code forPath} to {@link TextReader} used to ingest the path string instead of
+     * the document, so plain-text formats ({@code .txt}, {@code .md}, {@code .rst}) were
+     * embedded as one useless chunk per file.
+     */
+    private static ReaderInput inputFor(Reader reader, Path file) throws IOException {
+        return reader instanceof TextReader
+                ? ReaderInput.fromFile(file)
+                : ReaderInput.fromPath(file);
     }
 
     /** Expands a leading ~ and converts to an absolute normalized path. */

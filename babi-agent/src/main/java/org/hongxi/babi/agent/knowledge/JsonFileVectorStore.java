@@ -30,6 +30,9 @@ import java.util.Map;
  * reconstructed into {@link Document} instances on search. Writes go through a
  * temp file + atomic move so a crash never leaves a half-written store.
  */
+// The rag model classes are @Deprecated(forRemoval) since AgentScope 2.0.0, but
+// the VDBStoreBase SPI still requires them; no replacement exists in 2.0.4.
+@SuppressWarnings({"deprecation", "removal"})
 public class JsonFileVectorStore implements VDBStoreBase {
 
     private static final Logger log = LoggerFactory.getLogger(JsonFileVectorStore.class);

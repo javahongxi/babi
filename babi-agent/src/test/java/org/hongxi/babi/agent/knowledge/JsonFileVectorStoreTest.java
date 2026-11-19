@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit tests for {@link JsonFileVectorStore} — pure local, no embedding API calls.
  */
+// Rag model classes are @Deprecated(forRemoval) but still required by the 2.0.4 SPI.
+@SuppressWarnings({"deprecation", "removal"})
 class JsonFileVectorStoreTest {
 
     private static final int DIMS = 3;
