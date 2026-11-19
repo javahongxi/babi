@@ -14,9 +14,12 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Workspace file system API for the browser-based IDE.
@@ -25,6 +28,7 @@ import java.util.Map;
  * <ul>
  *   <li>{@code GET /api/workspace/tree?path=} — list directory children</li>
  *   <li>{@code GET /api/workspace/file?path=} — read file content</li>
+ *   <li>{@code GET /api/workspace/files?q=&limit=} — flat file search for @-mention completion</li>
  * </ul>
  */
 @RestController
@@ -79,6 +83,61 @@ public class WorkspaceController {
             });
             return children;
         });
+    }
+
+    /** Directories never worth suggesting as @-attachments. */
+    private static final Set<String> SKIP_DIRS =
+            Set.of("node_modules", "target", "dist", "build", "__pycache__");
+
+    /**
+     * Flat file search for the frontend @-mention autocomplete.
+     *
+     * <p>Walks the workspace (hidden entries and build/vendor dirs skipped),
+     * filters by case-insensitive substring on the relative path, and ranks
+     * filename-prefix matches first.
+     *
+     * @param q     filter substring (empty = all files)
+     * @param limit max results (capped at 50)
+     * @return list of workspace-relative file paths
+     */
+    @GetMapping("/files")
+    public Mono<List<String>> listFiles(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "20") int limit) {
+        return Mono.fromCallable(() -> {
+            String needle = q.toLowerCase();
+            int cap = Math.max(1, Math.min(limit, 50));
+            List<String> candidates = new ArrayList<>();
+            try (Stream<Path> stream = Files.walk(workspaceRoot, 10)) {
+                stream.filter(Files::isRegularFile)
+                        .map(workspaceRoot::relativize)
+                        .filter(rel -> {
+                            for (Path seg : rel) {
+                                String name = seg.toString();
+                                if (name.startsWith(".") || SKIP_DIRS.contains(name)) return false;
+                            }
+                            return true;
+                        })
+                        .map(Path::toString)
+                        .filter(p -> needle.isEmpty() || p.toLowerCase().contains(needle))
+                        .limit(5000)
+                        .forEach(candidates::add);
+            }
+            candidates.sort(Comparator
+                    .comparingInt((String p) -> matchRank(p, needle))
+                    .thenComparingInt(String::length)
+                    .thenComparing(p -> p));
+            return candidates.size() > cap ? candidates.subList(0, cap) : candidates;
+        });
+    }
+
+    /** Rank: filename prefix match (0) &gt; filename substring (1) &gt; path-only match (2). */
+    private static int matchRank(String path, String needle) {
+        if (needle.isEmpty()) return 0;
+        String name = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
+        if (name.startsWith(needle)) return 0;
+        if (name.contains(needle)) return 1;
+        return 2;
     }
 
     /**

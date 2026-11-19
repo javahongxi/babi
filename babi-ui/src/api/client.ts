@@ -12,6 +12,12 @@ export async function fetchFileTree(path: string): Promise<WorkspaceItem[]> {
   return res.json()
 }
 
+export async function fetchWorkspaceFiles(q: string, limit = 20): Promise<string[]> {
+  const res = await fetch(`/api/workspace/files?q=${encodeURIComponent(q)}&limit=${limit}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function fetchFileContent(path: string): Promise<FileContent> {
   const res = await fetch(`/api/workspace/file?path=${encodeURIComponent(path)}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

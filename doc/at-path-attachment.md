@@ -39,9 +39,17 @@
 - 只展开 **USER 消息**，工具结果与助手消息不受影响
 - 读取失败（文件不存在、越权等）**静默跳过**：`@路径` 原文保留，模型仍可按普通路径调用 read 工具兜底
 - 展开发生在 agent 入口（ON_AGENT 扩展点），早于推理与上下文截断
-- 前端不做 @ 补全（极简交互设计），路径需手动输入或从文件树复制
 
-## 4. 快速验证
+## 4. 前端 @ 补全
+
+输入框键入 `@` 自动弹出工作区文件候选列表，继续输入可模糊过滤（文件名前缀匹配优先）：
+
+- ↑/↓ 选择，Enter/Tab 或点击确认，Esc 关闭
+- 选中后自动插入 `@相对路径 `（尾部带空格），可继续输入多个引用
+- 候选来自 `GET /api/workspace/files?q=&limit=`，跳过隐藏目录与 node_modules/target/dist 等
+- 消息仍作为普通文本发送，展开由后端中间件完成，前端不读取文件内容
+
+## 5. 快速验证
 
 ```bash
 mkdir -p ~/babi-workspace/demo
@@ -57,3 +65,5 @@ echo "暗号是蓝色河马" > ~/babi-workspace/demo/secret.txt
 | @path 展开中间件 | `io.agentscope.harness.agent.middleware.AtPathExpansionMiddleware`（agentscope-harness，默认挂载） |
 | 禁用开关（babi 未使用） | `HarnessAgent.Builder.disableAtPathExpansion()` |
 | 文件读取 | `LocalFilesystemSpec` UNRESTRICTED 模式（见 `AgentConfiguration`） |
+| 前端补全弹层 | `babi-ui/src/components/InputArea.vue` |
+| 文件搜索端点 | `WorkspaceController.listFiles`（`GET /api/workspace/files`） |
