@@ -90,7 +90,9 @@ public final class AgentUtils {
     }
 
     /** Seed subagent declaration filenames (resources under /workspace/subagents/). */
-    private static final String[] SUBAGENT_SPECS = {"code-reviewer.md", "test-runner.md"};
+    private static final String[] SUBAGENT_SPECS = {
+            "code-reviewer.md", "test-runner.md", "researcher.md", "doc-writer.md"
+    };
 
     /**
      * Seed default subagent declarations into {@code {workspace}/subagents/}.
